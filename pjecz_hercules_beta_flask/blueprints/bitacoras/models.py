@@ -5,8 +5,8 @@ Bitácoras
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...config.extensions import database
-from ...lib.universal_mixin import UniversalMixin
+from pjecz_hercules_beta_flask.config.extensions import database
+from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
 
 
 class Bitacora(database.Model, UniversalMixin):

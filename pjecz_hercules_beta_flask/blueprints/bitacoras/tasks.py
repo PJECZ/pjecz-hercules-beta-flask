@@ -11,8 +11,9 @@ import sendgrid
 from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail, To
 
+from pjecz_hercules_beta_flask.config.extensions import database
+
 from ...app import app
-from ...config.extensions import database
 from ...lib.exceptions import MyAnyError, MyNotExistsError, MyNotValidParamError
 from ...lib.tasks import set_task_error, set_task_progress
 from ..modulos.models import Modulo
