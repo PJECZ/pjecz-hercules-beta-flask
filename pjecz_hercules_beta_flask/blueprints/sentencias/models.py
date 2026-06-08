@@ -31,8 +31,8 @@ class Sentencia(database.Model, UniversalMixin):
     sentencia: Mapped[str] = mapped_column(String(16))
     sentencia_fecha: Mapped[Optional[date]] = mapped_column(Date(), index=True)
     expediente: Mapped[str] = mapped_column(String(16))
-    expediente_anio: Mapped[int]
-    expediente_num: Mapped[int]
+    expediente_anio: Mapped[Optional[int]]
+    expediente_num: Mapped[Optional[int]]
     fecha: Mapped[date] = mapped_column(Date(), index=True)
     descripcion: Mapped[str] = mapped_column(String(1024))
     es_perspectiva_genero: Mapped[bool] = mapped_column(default=False)
