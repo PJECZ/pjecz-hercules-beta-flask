@@ -5,7 +5,7 @@ Sentencias, formularios
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileRequired
 from lib.safe_string import EXPEDIENTE_REGEXP, SENTENCIA_REGEXP
-from wtforms import BooleanField, DateField, FileField, IntegerField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import BooleanField, DateField, FileField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional, Regexp
 
 

@@ -7,12 +7,12 @@ import json
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.exceptions import MyAnyError
-from ...lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
-from ..permisos.models import Permiso
-from ..usuarios.decorators import permission_required
-from .models import Tarea
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.tareas.models import Tarea
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.exceptions import MyAnyError
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
 
 MODULO = "TAREAS"
 

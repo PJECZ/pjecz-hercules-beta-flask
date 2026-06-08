@@ -6,8 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired
 
-from ..roles.models import Rol
-from ..usuarios.models import Usuario
+from pjecz_hercules_beta_flask.blueprints.roles.models import Rol
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
 
 
 class UsuarioRolNewWithRolForm(FlaskForm):

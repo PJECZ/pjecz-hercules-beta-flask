@@ -6,8 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, Optional, Regexp
 
-from ...lib.safe_string import CONTRASENA_REGEXP
-from .models import Usuario
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.lib.safe_string import CONTRASENA_REGEXP
 
 CONTRASENA_MENSAJE = "De 8 a 48 caracteres con al menos una mayúscula, una minúscula y un número. No acentos, ni eñe."
 

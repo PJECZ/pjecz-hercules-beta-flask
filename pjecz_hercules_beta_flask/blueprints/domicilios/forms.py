@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import IntegerField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional
 
-from ..distritos.models import Distrito
+from pjecz_hercules_beta_flask.blueprints.distritos.models import Distrito
 
 
 class DomicilioForm(FlaskForm):

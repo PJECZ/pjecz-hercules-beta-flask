@@ -6,7 +6,7 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional, Regexp
 
-from ...lib.safe_string import CLAVE_REGEXP
+from pjecz_hercules_beta_flask.lib.safe_string import CLAVE_REGEXP
 
 
 class MateriaForm(FlaskForm):

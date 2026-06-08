@@ -8,20 +8,20 @@ from datetime import datetime
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from ...lib.clean_html import clean_html
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.folio import validar_folio
-from ...lib.safe_string import safe_clave, safe_email, safe_message, safe_string, safe_uuid
-from ..autoridades.models import Autoridad
-from ..bitacoras.models import Bitacora
-from ..modulos.models import Modulo
-from ..ofi_documentos_destinatarios.models import OfiDocumentoDestinatario
-from ..ofi_plantillas.models import OfiPlantilla
-from ..permisos.models import Permiso
-from ..usuarios.decorators import permission_required
-from ..usuarios.models import Usuario
-from .forms import OfiDocumentoForm
-from .models import OfiDocumento
+from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos.forms import OfiDocumentoForm
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos.models import OfiDocumento
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos_destinatarios.models import OfiDocumentoDestinatario
+from pjecz_hercules_beta_flask.blueprints.ofi_plantillas.models import OfiPlantilla
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.lib.clean_html import clean_html
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.folio import validar_folio
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_email, safe_message, safe_string, safe_uuid
 
 # Roles
 ROL_ESCRITOR = "OFICIOS ESCRITOR"

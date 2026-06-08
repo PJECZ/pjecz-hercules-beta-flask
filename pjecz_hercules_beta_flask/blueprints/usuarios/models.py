@@ -10,12 +10,11 @@ from flask_login import UserMixin
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.tareas.models import Tarea
+from pjecz_hercules_beta_flask.blueprints.usuarios_roles.models import UsuarioRol
 from pjecz_hercules_beta_flask.config.extensions import database, pwd_context
 from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
-
-from ..permisos.models import Permiso
-from ..tareas.models import Tarea
-from ..usuarios_roles.models import UsuarioRol
 
 
 class Usuario(database.Model, UserMixin, UniversalMixin):

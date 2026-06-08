@@ -6,8 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import RadioField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired
 
-from ..modulos.models import Modulo
-from ..roles.models import Rol
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.roles.models import Rol
 
 NIVELES = [
     (1, "1) Ver"),
