@@ -8,8 +8,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import psycopg2
 from dotenv import load_dotenv
 from rich.console import Console
+from rich.progress import Progress
 from typer import Typer
 
 from pjecz_hercules_beta_flask.app import app
@@ -46,6 +48,16 @@ USUARIOS_ROLES_CSV = "seed/usuarios_roles.csv"
 # Cargar variables de entorno
 load_dotenv()
 DEPLOYMENT_ENVIRONMENT = os.getenv("DEPLOYMENT_ENVIRONMENT", "DEVELOPMENT")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME")
+PRODUCTION_DB_USER = os.getenv("PRODUCTION_DB_USER")
+PRODUCTION_DB_PASS = os.getenv("PRODUCTION_DB_PASS")
+PRODUCTION_DB_HOST = os.getenv("PRODUCTION_DB_HOST")
+PRODUCTION_DB_PORT = int(os.getenv("PRODUCTION_DB_PORT", "5432"))
+PRODUCTION_DB_NAME = os.getenv("PRODUCTION_DB_NAME")
 
 # Inicializar la aplicación
 app.app_context().push()
@@ -665,6 +677,74 @@ def alimentar_usuarios_roles():
     console.print(f"[green]{contador} usuarios-roles alimentados.")
 
 
+def copiar_estrados():
+    """Copiar la tabla estrados de la BD producción (túnel SSH) a la BD local"""
+
+
+def copiar_glosas():
+    """Copiar la tabla glosas de la BD producción (túnel SSH) a la BD local"""
+
+
+def copiar_listas_de_acuerdos(conn_pro, cursor_pro, conn_dev, cursor_dev):
+    """Copiar la tabla listas_de_acuerdos de la BD producción (túnel SSH) a la BD local"""
+    console = Console()
+    # Determinar el número total de registros en la tabla listas_de_acuerdos de la BD producción
+    try:
+        cursor_pro.execute("SELECT COUNT(*) FROM listas_de_acuerdos")
+        total_registros = cursor_pro.fetchone()[0]
+    except Exception as error:
+        raise Exception("Error al contar los registros en la BD producción") from error
+    # Inicializar limit y offset para paginar la consulta de la BD producción
+    limit = 1000
+    offset = 0
+    contador = 0
+    # Bucle con la barra de progreso
+    with Progress() as progress:
+        task = progress.add_task("[green]Copiando listas_de_acuerdos...", total=total_registros)
+        while True:
+            # Leer registros en la BD producción
+            try:
+                cursor_pro.execute(
+                    """
+                        SELECT autoridad_id, fecha, descripcion, archivo, url, estatus
+                        FROM listas_de_acuerdos
+                        ORDER BY id
+                        LIMIT %s OFFSET %s
+                    """,
+                    (limit, offset),
+                )
+                rows = cursor_pro.fetchall()
+            except Exception as error:
+                raise Exception("Error al consultar la BD producción") from error
+            # Si no hay más registros, salir del ciclo
+            if not rows:
+                break
+            # Insertar registros en la BD local
+            insert_query = """
+                INSERT INTO listas_de_acuerdos
+                    (autoridad_id, fecha, descripcion, archivo, url, estatus)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s)
+            """
+            try:
+                for row in rows:
+                    cursor_dev.execute(insert_query, [*row])
+                    contador += 1
+            except Exception as error:
+                raise Exception(f"Error al insertar en la BD local: {error}") from error
+            # Confirmar los cambios
+            conn_dev.commit()
+            # Incrementar offset para la siguiente página
+            offset += limit
+            # Actualizar la barra de progreso
+            progress.update(task, advance=len(rows))
+    console.print(f"[green]{contador} registros copiados a la tabla listas_de_acuerdos.")
+
+
+def copiar_sentencias():
+    """Copiar la tabla sentencias de la BD producción (túnel SSH) a la BD local"""
+
+
 def respaldar_autoridades():
     """Respaldar Autoridades"""
     console = Console()
@@ -1160,3 +1240,48 @@ def respaldar():
     respaldar_oficinas()
     respaldar_roles_permisos()
     respaldar_usuarios_roles()
+
+
+@db.command()
+def copiar():
+    """Copiar tablas específicas de la BD de producción (túnel SSH) a la BD local"""
+    console = Console()
+    # Conectar a la BD de producción (túnel SSH)
+    try:
+        conn_pro = psycopg2.connect(
+            dbname=PRODUCTION_DB_NAME,
+            user=PRODUCTION_DB_USER,
+            password=PRODUCTION_DB_PASS,
+            host=PRODUCTION_DB_HOST,
+            port=PRODUCTION_DB_PORT,
+        )
+        cursor_pro = conn_pro.cursor()
+    except Exception as error:
+        console.print(f"[red]Error al conectar a la BD de producción:[/red] {error}")
+        return
+    # Conectar a la BD local
+    try:
+        conn_dev = psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+            host=DB_HOST,
+            port=DB_PORT,
+        )
+        cursor_dev = conn_dev.cursor()
+    except Exception as error:
+        console.print(f"[red]Error al conectar a la BD local:[/red] {error}")
+        return
+    # Copiar tablas específicas
+    try:
+        copiar_listas_de_acuerdos(conn_pro, cursor_pro, conn_dev, cursor_dev)
+    except Exception as error:
+        console.print(f"[red]Error al copiar tablas:[/red] {error}")
+    # Cerrar conexiones
+    try:
+        cursor_pro.close()
+        conn_pro.close()
+        cursor_dev.close()
+        conn_dev.close()
+    except Exception as error:
+        console.print(f"[red]Error al cerrar conexiones:[/red] {error}")
