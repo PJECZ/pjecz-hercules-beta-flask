@@ -9,7 +9,7 @@
     {% call topbar.page_buttons('Tipo de Juicio ' + materia_tipo_juicio.descripcion) %}
         {{ topbar.button_previous('Tipos de Juicios', url_for('materias_tipos_juicios.list_active')) }}
         {% if current_user.can_edit('MATERIAS TIPOS JUICIOS') %}
-        {{ topbar.button_edit('Editar', url_for('materias_tipos_juicios.edit', materia_tipo_juicio_id=materia_tipo_juicio.id)) }}
+            {{ topbar.button_edit('Editar', url_for('materias_tipos_juicios.edit', materia_tipo_juicio_id=materia_tipo_juicio.id)) }}
         {% endif %}
         {% if current_user.can_admin('MATERIAS TIPOS JUICIOS') %}
             {% if materia_tipo_juicio.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('materias_tipos_juicios.delete', materia_tipo_juicio_id=materia_tipo_juicio.id)) }}{% endif %}
@@ -20,10 +20,12 @@
 
 {% block content %}
     {% call detail.card(estatus=materia_tipo_juicio.estatus) %}
-        {{ detail.label_value_big('Clave', materia_tipo_juicio.descripcion) }}
-        {{ detail.label_value('Descripción', materia_tipo_juicio.descripcion) }}
-        {{ detail.label_value('Columna', materia_tipo_juicio.columna) }}
-        {{ detail.label_value('Creado', moment(materia_tipo_juicio.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+        {{ detail.label_value_big('Descripción', materia_tipo_juicio.descripcion) }}
+        {% if current_user.can_view('MATERIAS') %}
+            {{ detail.label_value('Materia', materia_tipo_juicio.materia.nombre, url_for('materias.detail', materia_id=materia_tipo_juicio.materia_id)) }}
+        {% else %}
+            {{ detail.label_value('Materia', materia_tipo_juicio.materia.nombre) }}
+        {% endif %}
     {% endcall %}
 {% endblock %}
 

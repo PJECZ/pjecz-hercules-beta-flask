@@ -169,3 +169,43 @@ def detail(sentencia_id):
     """Detalle de un Sentencia"""
     sentencia = Sentencia.query.get_or_404(sentencia_id)
     return render_template("sentencias/detail.jinja2", sentencia=sentencia)
+
+
+@sentencias.route("/sentencias/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Subir Sentencia como juzgado"""
+
+
+@sentencias.route("/sentencias/nuevo/<int:autoridad_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def new_with_autoridad_id(autoridad_id):
+    """Subir Sentencia para una autoridad como administrador"""
+
+
+@sentencias.route("/sentencias/editar/<int:sentencia_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(sentencia_id):
+    """Editar Sentencia"""
+
+
+@sentencias.route("/sentencias/eliminar/<int:sentencia_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def delete(sentencia_id):
+    """Eliminar Sentencia"""
+
+
+@sentencias.route("/sentencias/recuperar/<int:sentencia_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def recover(sentencia_id):
+    """Recuperar Sentencia"""
+
+
+@sentencias.route("/sentencias/ver_archivo_pdf/<int:sentencia_id>")
+def view_file_pdf(sentencia_id):
+    """Ver archivo PDF de una Sentencia para insertarlo en un iframe en el detalle"""
+
+
+@sentencias.route("/sentencias/descargar_archivo_pdf/<int:sentencia_id>")
+def download_file_pdf(sentencia_id):
+    """Descargar archivo PDF de una Sentencia"""

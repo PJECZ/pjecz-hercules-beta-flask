@@ -3,15 +3,24 @@
 {% import 'macros/modals.jinja2' as modals %}
 {% import 'macros/topbar.jinja2' as topbar %}
 
-{% block title %}Lista de Acuerdos {{ lista_de_acuerdo.descripcion }}{% endblock %}
+{% block title %}Lista de Acuerdos{% endblock %}
 
 {% block topbar_actions %}
-    {% call topbar.page_buttons('Lista de Acuerdos ' + lista_de_acuerdo.descripcion) %}
-        {{ topbar.button_previous('Listas de Acuerdos', url_for('listas_de_acuerdos.list_active')) }}
-        {% if current_user.can_edit('LISTAS DE ACUERDOS') %}
-        {{ topbar.button_edit('Editar', url_for('listas_de_acuerdos.edit', lista_de_acuerdo_id=lista_de_acuerdo.id)) }}
+    {% call topbar.page_buttons('Lista de Acuerdos') %}
+        {% if current_user.can_admin('LISTAS DE ACUERDOS') %}
+            {{ topbar.button_previous('Listas de Acuerdos de ' + lista_de_acuerdo.autoridad.clave, url_for('listas_de_acuerdos.list_autoridad_listas_de_acuerdos', autoridad_id=lista_de_acuerdo.autoridad_id)) }}
+        {% else %}
+            {{ topbar.button_previous('Listas de Acuerdos', url_for('listas_de_acuerdos.list_active')) }}
+        {% endif %}
+        {% if current_user.can_admin('LISTAS DE ACUERDOS ACUERDOS') %}
+            {{ topbar.button_new('Nuevo acuerdo', url_for('listas_de_acuerdos_acuerdos.new', lista_de_acuerdo_id=lista_de_acuerdo.id)) }}
         {% endif %}
         {% if current_user.can_admin('LISTAS DE ACUERDOS') %}
+            {{ topbar.button_upload('Subir', url_for('listas_de_acuerdos.new_for_autoridad', autoridad_id=lista_de_acuerdo.autoridad_id)) }}
+        {% elif current_user.can_insert('LISTAS DE ACUERDOS') and current_user.autoridad_id == lista_de_acuerdo.autoridad_id %}
+            {{ topbar.button_upload('Subir', url_for('listas_de_acuerdos.new')) }}
+        {% endif %}
+        {% if current_user.can_admin('LISTAS DE ACUERDOS') or (current_user.can_edit('LISTAS DE ACUERDOS') and lista_de_acuerdo.autoridad_id == current_user.autoridad_id) %}
             {% if lista_de_acuerdo.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('listas_de_acuerdos.delete', lista_de_acuerdo_id=lista_de_acuerdo.id)) }}{% endif %}
             {% if lista_de_acuerdo.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('listas_de_acuerdos.recover', lista_de_acuerdo_id=lista_de_acuerdo.id)) }}{% endif %}
         {% endif %}

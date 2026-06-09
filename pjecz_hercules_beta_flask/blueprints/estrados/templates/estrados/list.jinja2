@@ -6,12 +6,13 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {% if current_user.can_admin('ESTRADOS') %}
-            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('estrados.list_inactive')) }}{% endif %}
-            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('estrados.list_active')) }}{% endif %}
+        {# Si hay filtro por autoridad #}
+        {% if mostrar_filtro_autoridad_clave %}
+            {{ topbar.button_previous('Todos los Estrados', url_for('estrados.list_active')) }}
         {% endif %}
+        {# Mostrar el botón para subir si tiene permiso y es su autoridad #}
         {% if current_user.can_insert('ESTRADOS') %}
-            {{ topbar.button_new('Nuevo Estrado', url_for('estrados.new')) }}
+            {{ topbar.button_upload('Subir Estrado', url_for('estrados.new')) }}
         {% endif %}
     {% endcall %}
 {% endblock %}

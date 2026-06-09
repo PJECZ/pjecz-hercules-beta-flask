@@ -6,23 +6,27 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {# Si hay filtro por autoridad #}
-        {% if mostrar_filtro_autoridad_clave %}
-            {{ topbar.button_previous('Todas las L. de A.', url_for('listas_de_acuerdos.list_active')) }}
-        {% endif %}
-        {# Mostrar el botón para subir si tiene permiso y es su autoridad #}
-        {% if current_user.can_insert('LISTAS DE ACUERDOS') %}
-            {{ topbar.button_upload('Subir L. de A.', url_for('listas_de_acuerdos.new')) }}
+        {# Si viene la autoridad #}
+        {% if autoridad %}
+            {{ topbar.button_previous('Todos los Estrados', url_for('estrados.list_active')) }}
+            {# Entonces pasar la autoridad como parametro #}
+            {{ topbar.button_upload('Subir Estrado para ' + autoridad.clave, url_for('estrados.new_with_autoridad_id', autoridad_id=autoridad.id)) }}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('estrados.list_inactive') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('estrados.list_active') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+        {% else %}
+            {# De lo contrario no se tiene #}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('estrados.list_inactive')) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('estrados.list_active')) }}{% endif %}
         {% endif %}
     {% endcall %}
 {% endblock %}
 
 {% block content %}
     {% call list.card() %}
-        <!-- Filtros ListasDeAcuerdos -->
+        <!-- Filtros Estrados -->
         <div class="row">
             <div class="col">
-                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosListasDeAcuerdos.buscar(); return false;">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosEstrados.buscar(); return false;">
                     <div class="col-4">
                         <div class="form-floating">
                             <input id="filtroClave" type="text" class="form-control" aria-label="Clave" style="text-transform: uppercase;">
@@ -36,20 +40,18 @@
                         </div>
                     </div>
                     <div class="col-2 text-end">
-                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosListasDeAcuerdos.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
-                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosListasDeAcuerdos.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosEstrados.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosEstrados.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
                 </form>
             </div>
         </div>
-        <!-- DataTable ListasDeAcuerdos -->
-        <table id="listas_de_acuerdos_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+        <!-- DataTable Estrados -->
+        <table id="estrados_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
             <thead>
                 <tr>
-                    <th>Fecha</th>
-                    <th>Autoridad</th>
+                    <th>Clave</th>
                     <th>Descripción</th>
-                    <th>Creado</th>
                 </tr>
             </thead>
         </table>
@@ -60,10 +62,10 @@
     <script src="{{ url_for('static', filename='js/datatables-constructor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/datatables-filtros.js') }}"></script>
     <script>
-        // DataTable ListasDeAcuerdos
+        // DataTable Estrados
         const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
         let configDataTable = constructorDataTable.config();
-        configDataTable['ajax']['url'] = "{{ url_for('listas_de_acuerdos.datatable_json') }}";
+        configDataTable['ajax']['url'] = "{{ url_for('estrados.datatable_json') }}";
         configDataTable['ajax']['data'] = {{ filtros }};
         configDataTable['columns'] = [
             { data: 'detalle' },
@@ -78,10 +80,10 @@
                 }
             }
         ];
-        // Filtros ListasDeAcuerdos
-        const filtrosListasDeAcuerdos = new FiltrosDataTable('#listas_de_acuerdos_datatable', configDataTable);
-        filtrosListasDeAcuerdos.agregarInput('filtroClave', 'clave');
-        filtrosListasDeAcuerdos.agregarInput('filtroDescripcion', 'descripcion');
-        filtrosListasDeAcuerdos.precargar();
+        // Filtros Estrados
+        const filtrosEstrados = new FiltrosDataTable('#estrados_datatable', configDataTable);
+        filtrosEstrados.agregarInput('filtroClave', 'clave');
+        filtrosEstrados.agregarInput('filtroDescripcion', 'descripcion');
+        filtrosEstrados.precargar();
     </script>
 {% endblock %}

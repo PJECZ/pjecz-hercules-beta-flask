@@ -175,3 +175,32 @@ def detail(lista_de_acuerdo_id):
     """Detalle de un Lista de Acuerdo"""
     lista_de_acuerdo = ListaDeAcuerdo.query.get_or_404(lista_de_acuerdo_id)
     return render_template("listas_de_acuerdos/detail.jinja2", lista_de_acuerdo=lista_de_acuerdo)
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Subir ListaDeAcuerdo como Juzgado"""
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/nuevo_con_autoridad_id/<int:autoridad_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def new_with_autoridad_id(autoridad_id):
+    """Subir ListaDeAcuerdo para una autoridad como administrador"""
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/eliminar/<int:lista_de_acuerdo_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def delete(lista_de_acuerdo_id):
+    """Eliminar ListaDeAcuerdo"""
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/recuperar/<int:lista_de_acuerdo_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def recover(lista_de_acuerdo_id):
+    """Recuperar ListaDeAcuerdo"""
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/ver_archivo_pdf/<int:lista_de_acuerdo_id>")
+def view_file_pdf(lista_de_acuerdo_id):
+    """Ver archivo PDF de ListaDeAcuerdo para insertarlo en un iframe en el detalle"""

@@ -136,3 +136,43 @@ def detail(estrado_id):
     """Detalle de un Estrado"""
     estrado = Estrado.query.get_or_404(estrado_id)
     return render_template("estrados/detail.jinja2", estrado=estrado)
+
+
+@estrados.route("/estrados/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Subir Estrado como juzgado"""
+
+
+@estrados.route("/estrados/nuevo/<int:autoridad_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def new_with_autoridad_id(autoridad_id):
+    """Subir Estrado para una autoridad como administrador"""
+
+
+@estrados.route("/estrados/editar/<int:estrado_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(estrado_id):
+    """Editar Estrado"""
+
+
+@estrados.route("/estrados/eliminar/<int:estrado_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def delete(estrado_id):
+    """Eliminar Estrado"""
+
+
+@estrados.route("/estrados/recuperar/<int:estrado_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def recover(estrado_id):
+    """Recuperar Estrado"""
+
+
+@estrados.route("/estrados/ver_archivo_pdf/<int:estrado_id>")
+def view_file_pdf(estrado_id):
+    """Ver archivo PDF de Estrado para insertarlo en un iframe en el detalle"""
+
+
+@estrados.route("/estrados/descargar_archivo_pdf/<int:estrado_id>")
+def download_file_pdf(estrado_id):
+    """Descargar archivo PDF de Estrado"""

@@ -157,3 +157,43 @@ def detail(edicto_id):
     """Detalle de un Edicto"""
     edicto = Edicto.query.get_or_404(edicto_id)
     return render_template("edictos/detail.jinja2", edicto=edicto)
+
+
+@edictos.route("/edictos/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Subir Edicto como juzgado"""
+
+
+@edictos.route("/edictos/nuevo/<int:autoridad_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def new_with_autoridad_id(autoridad_id):
+    """Subir Edicto para una autoridad como administrador"""
+
+
+@edictos.route("/edictos/editar/<int:edicto_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(edicto_id):
+    """Editar Edicto"""
+
+
+@edictos.route("/edictos/eliminar/<int:edicto_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def delete(edicto_id):
+    """Eliminar Edicto"""
+
+
+@edictos.route("/edictos/recuperar/<int:edicto_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def recover(edicto_id):
+    """Recuperar Edicto"""
+
+
+@edictos.route("/edictos/ver_archivo_pdf/<int:edicto_id>")
+def view_file_pdf(edicto_id):
+    """Ver archivo PDF de Edicto para insertarlo en un iframe en el detalle"""
+
+
+@edictos.route("/edictos/descargar_archivo_pdf/<int:edicto_id>")
+def download_file_pdf(edicto_id):
+    """Descargar archivo PDF de Edicto"""

@@ -6,12 +6,13 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {% if current_user.can_admin('GLOSAS') %}
-            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('glosas.list_inactive')) }}{% endif %}
-            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('glosas.list_active')) }}{% endif %}
+        {# Si hay filtro por autoridad #}
+        {% if mostrar_filtro_autoridad_clave %}
+            {{ topbar.button_previous('Todos las Glosas', url_for('glosas.list_active')) }}
         {% endif %}
+        {# Mostrar el botón para subir si tiene permiso y es su autoridad #}
         {% if current_user.can_insert('GLOSAS') %}
-            {{ topbar.button_new('Nuevo Glosa', url_for('glosas.new')) }}
+            {{ topbar.button_upload('Subir Glosa', url_for('glosas.new')) }}
         {% endif %}
     {% endcall %}
 {% endblock %}
@@ -45,8 +46,11 @@
         <table id="glosas_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
             <thead>
                 <tr>
-                    <th>Clave</th>
+                    <th>Fecha</th>
+                    <th>Autoridad</th>
                     <th>Descripción</th>
+                    <th>Expediente</th>
+                    <th>Tipo de Juicio</th>
                 </tr>
             </thead>
         </table>

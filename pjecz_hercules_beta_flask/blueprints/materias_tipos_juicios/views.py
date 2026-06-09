@@ -97,3 +97,27 @@ def detail(materia_tipo_juicio_id):
     """Detalle de un Materia Tipo Juicio"""
     materia_tipo_juicio = MateriaTipoJuicio.query.get_or_404(materia_tipo_juicio_id)
     return render_template("materias_tipos_juicios/detail.jinja2", materia_tipo_juicio=materia_tipo_juicio)
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Nuevo Materia Tipo de Juicio"""
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/edicion/<int:materia_tipo_juicio_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(materia_tipo_juicio_id):
+    """Editar Materia Tipo de Juicio"""
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/eliminar/<int:materia_tipo_juicio_id>")
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def delete(materia_tipo_juicio_id):
+    """Eliminar Tipo de Juicio"""
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/recuperar/<int:materia_tipo_juicio_id>")
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def recover(materia_tipo_juicio_id):
+    """Recuperar Tipo de Juicio"""

@@ -6,13 +6,17 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {# Si hay filtro por autoridad #}
-        {% if mostrar_filtro_autoridad_clave %}
+        {# Si viene la autoridad #}
+        {% if autoridad %}
             {{ topbar.button_previous('Todos los Edictos', url_for('edictos.list_active')) }}
-        {% endif %}
-        {# Mostrar el botón para subir si tiene permiso y es su autoridad #}
-        {% if current_user.can_insert('EDICTOS') %}
-            {{ topbar.button_upload('Subir Edicto', url_for('edictos.new')) }}
+            {# Entonces pasar la autoridad como parametro #}
+            {{ topbar.button_upload('Subir Edicto para ' + autoridad.clave, url_for('edictos.new_with_autoridad_id', autoridad_id=autoridad.id)) }}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('edictos.list_inactive') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('edictos.list_active') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+        {% else %}
+            {# De lo contrario no se tiene #}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('edictos.list_inactive')) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('edictos.list_active')) }}{% endif %}
         {% endif %}
     {% endcall %}
 {% endblock %}

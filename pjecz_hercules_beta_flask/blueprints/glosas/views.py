@@ -142,3 +142,43 @@ def detail(glosa_id):
     """Detalle de un Glosa"""
     glosa = Glosa.query.get_or_404(glosa_id)
     return render_template("glosas/detail.jinja2", glosa=glosa)
+
+
+@glosas.route("/glosas/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Subir Glosa como Juzgado"""
+
+
+@glosas.route("/glosas/nuevo_con_autoridad_id/<int:autoridad_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def new_with_autoridad_id(autoridad_id):
+    """Subir Glosa para una autoridad como administrador"""
+
+
+@glosas.route("/glosas/editar/<int:glosa_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(glosa_id):
+    """Editar Glosa"""
+
+
+@glosas.route("/glosas/eliminar/<int:glosa_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def delete(glosa_id):
+    """Eliminar Glosa"""
+
+
+@glosas.route("/glosas/recuperar/<int:glosa_id>")
+@permission_required(MODULO, Permiso.CREAR)
+def recover(glosa_id):
+    """Recuperar Glosa"""
+
+
+@glosas.route("/glosas/ver_archivo_pdf/<int:glosa_id>")
+def view_file_pdf(glosa_id):
+    """Ver archivo PDF de Glosa para insertarlo en un iframe en el detalle"""
+
+
+@glosas.route("/glosas/descargar_archivo_pdf/<int:glosa_id>")
+def download_file_pdf(glosa_id):
+    """Descargar archivo PDF de Glosa"""
