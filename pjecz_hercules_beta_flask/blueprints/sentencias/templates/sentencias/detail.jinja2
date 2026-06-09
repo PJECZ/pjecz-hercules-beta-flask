@@ -1,0 +1,35 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}Sentencia {{ sentencia.descripcion }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Sentencia ' + sentencia.descripcion) %}
+        {{ topbar.button_previous('Sentencias', url_for('sentencias.list_active')) }}
+        {% if current_user.can_edit('SENTENCIAS') %}
+        {{ topbar.button_edit('Editar', url_for('sentencias.edit', sentencia_id=sentencia.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('SENTENCIAS') %}
+            {% if sentencia.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('sentencias.delete', sentencia_id=sentencia.id)) }}{% endif %}
+            {% if sentencia.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('sentencias.recover', sentencia_id=sentencia.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=sentencia.estatus) %}
+        {{ detail.label_value_big('Clave', sentencia.descripcion) }}
+        {{ detail.label_value('Descripción', sentencia.descripcion) }}
+        {{ detail.label_value('Columna', sentencia.columna) }}
+        {{ detail.label_value('Creado', moment(sentencia.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('SENTENCIAS') %}
+        {% if sentencia.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar a ' + sentencia.descripcion + '?') }}{% endif %}
+        {% if sentencia.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar a ' + sentencia.descripcion + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}

@@ -8,6 +8,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user, login_required
 
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.materias_tipos_juicios.models import MateriaTipoJuicio
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
@@ -25,3 +26,74 @@ materias_tipos_juicios = Blueprint("materias_tipos_juicios", __name__, template_
 @permission_required(MODULO, Permiso.VER)
 def before_request():
     """Permiso por defecto"""
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/datatable_json", methods=["GET", "POST"])
+def datatable_json():
+    """DataTable JSON para listado de Materias Tipos Juicios"""
+    # Tomar parámetros de Datatables
+    draw, start, rows_per_page = get_datatable_parameters()
+    # Consultar
+    consulta = MateriaTipoJuicio.query
+    # Primero filtrar por columnas propias
+    if "estatus" in request.form:
+        consulta = consulta.filter(MateriaTipoJuicio.estatus == request.form["estatus"])
+    else:
+        consulta = consulta.filter(MateriaTipoJuicio.estatus == "A")
+    if "materia_id" in request.form:
+        consulta = consulta.filter(MateriaTipoJuicio.materia_id == request.form["materia_id"])
+    elif "materia_nombre" in request.form:
+        materia_nombre = safe_string(request.form["materia_nombre"], save_enie=True)
+        if materia_nombre != "":
+            consulta = consulta.join(Materia).filter(Materia.nombre.contains(materia_nombre))
+    if "descripcion" in request.form:
+        descripcion = safe_string(request.form["descripcion"], save_enie=True)
+        if descripcion != "":
+            consulta = consulta.filter(MateriaTipoJuicio.descripcion.contains(descripcion))
+    # Ordenar y paginar
+    registros = consulta.order_by(MateriaTipoJuicio.id).offset(start).limit(rows_per_page).all()
+    total = consulta.count()
+    # Elaborar datos para DataTable
+    data = []
+    for resultado in registros:
+        data.append(
+            {
+                "detalle": {
+                    "descripcion": resultado.descripcion,
+                    "url": url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=resultado.id),
+                },
+                "materia_nombre": resultado.materia.nombre,
+            }
+        )
+    # Entregar JSON
+    return output_datatable_json(draw, total, data)
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios")
+def list_active():
+    """Listado de Materias Tipos Juicios activos"""
+    return render_template(
+        "materias_tipos_juicios/list.jinja2",
+        estatus="A",
+        filtros={"estatus": "A"},
+        titulo="Tipos de Juicios",
+    )
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/inactivos")
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def list_inactive():
+    """Listado de Materias Tipos Juicios inactivos"""
+    return render_template(
+        "materias_tipos_juicios/list.jinja2",
+        estatus="B",
+        filtros={"estatus": "B"},
+        titulo="Tipos de Juicios inactivos",
+    )
+
+
+@materias_tipos_juicios.route("/materias_tipos_juicios/<int:materia_tipo_juicio_id>")
+def detail(materia_tipo_juicio_id):
+    """Detalle de un Materia Tipo Juicio"""
+    materia_tipo_juicio = MateriaTipoJuicio.query.get_or_404(materia_tipo_juicio_id)
+    return render_template("materias_tipos_juicios/detail.jinja2", materia_tipo_juicio=materia_tipo_juicio)

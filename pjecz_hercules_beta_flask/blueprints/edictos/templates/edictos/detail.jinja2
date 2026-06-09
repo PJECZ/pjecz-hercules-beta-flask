@@ -1,0 +1,35 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}Edicto {{ edicto.descripcion }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Edicto ' + edicto.descripcion) %}
+        {{ topbar.button_previous('Edictos', url_for('edictos.list_active')) }}
+        {% if current_user.can_edit('EDICTOS') %}
+        {{ topbar.button_edit('Editar', url_for('edictos.edit', edicto_id=edicto.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('EDICTOS') %}
+            {% if edicto.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('edictos.delete', edicto_id=edicto.id)) }}{% endif %}
+            {% if edicto.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('edictos.recover', edicto_id=edicto.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=edicto.estatus) %}
+        {{ detail.label_value_big('Clave', edicto.descripcion) }}
+        {{ detail.label_value('Descripción', edicto.descripcion) }}
+        {{ detail.label_value('Columna', edicto.columna) }}
+        {{ detail.label_value('Creado', moment(edicto.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('EDICTOS') %}
+        {% if edicto.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar a ' + edicto.descripcion + '?') }}{% endif %}
+        {% if edicto.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar a ' + edicto.descripcion + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}
