@@ -2,19 +2,18 @@
 Materias Tipos de Juicios, vistas
 """
 
-import json
-
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
+from pjecz_hercules_beta_flask.blueprints.materias_tipos_juicios.forms import MateriaTipoJuicioForm
 from pjecz_hercules_beta_flask.blueprints.materias_tipos_juicios.models import MateriaTipoJuicio
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
+from pjecz_hercules_beta_flask.lib.safe_string import safe_message, safe_string
 
 MODULO = "MATERIAS TIPOS JUICIOS"
 
@@ -103,21 +102,84 @@ def detail(materia_tipo_juicio_id):
 @permission_required(MODULO, Permiso.CREAR)
 def new():
     """Nuevo Materia Tipo de Juicio"""
+    form = MateriaTipoJuicioForm()
+    if form.validate_on_submit():
+        materia_tipo_juicio = MateriaTipoJuicio(
+            materia_id=form.materia.data,
+            descripcion=safe_string(form.descripcion.data),
+        )
+        materia_tipo_juicio.save()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(
+                f"Nuevo Tipo de Juicio {materia_tipo_juicio.descripcion} en {materia_tipo_juicio.materia.nombre}"
+            ),
+            url=url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+    return render_template("materias_tipos_juicios/new.jinja2", form=form)
 
 
 @materias_tipos_juicios.route("/materias_tipos_juicios/edicion/<int:materia_tipo_juicio_id>", methods=["GET", "POST"])
 @permission_required(MODULO, Permiso.MODIFICAR)
 def edit(materia_tipo_juicio_id):
     """Editar Materia Tipo de Juicio"""
+    materia_tipo_juicio = MateriaTipoJuicio.query.get_or_404(materia_tipo_juicio_id)
+    form = MateriaTipoJuicioForm()
+    if form.validate_on_submit():
+        materia_tipo_juicio.materia_id = form.materia.data
+        materia_tipo_juicio.descripcion = safe_string(form.descripcion.data)
+        materia_tipo_juicio.save()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(
+                f"Editado Materia Tipo de Juicio {materia_tipo_juicio.descripcion} en {materia_tipo_juicio.materia.nombre}"
+            ),
+            url=url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+    form.materia.data = materia_tipo_juicio.materia_id
+    form.descripcion.data = materia_tipo_juicio.descripcion
+    return render_template("materias_tipos_juicios/edit.jinja2", form=form, materia_tipo_juicio=materia_tipo_juicio)
 
 
 @materias_tipos_juicios.route("/materias_tipos_juicios/eliminar/<int:materia_tipo_juicio_id>")
 @permission_required(MODULO, Permiso.ADMINISTRAR)
 def delete(materia_tipo_juicio_id):
     """Eliminar Tipo de Juicio"""
+    materia_tipo_juicio = MateriaTipoJuicio.query.get_or_404(materia_tipo_juicio_id)
+    if materia_tipo_juicio.estatus == "A":
+        materia_tipo_juicio.delete()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(f"Eliminado Tipo de Juicio {materia_tipo_juicio.descripcion}"),
+            url=url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+    return redirect(url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id))
 
 
 @materias_tipos_juicios.route("/materias_tipos_juicios/recuperar/<int:materia_tipo_juicio_id>")
 @permission_required(MODULO, Permiso.ADMINISTRAR)
 def recover(materia_tipo_juicio_id):
     """Recuperar Tipo de Juicio"""
+    materia_tipo_juicio = MateriaTipoJuicio.query.get_or_404(materia_tipo_juicio_id)
+    if materia_tipo_juicio.estatus == "B":
+        materia_tipo_juicio.recover()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(f"Recuperado Tipo de Juicio {materia_tipo_juicio.descripcion}"),
+            url=url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+    return redirect(url_for("materias_tipos_juicios.detail", materia_tipo_juicio_id=materia_tipo_juicio.id))

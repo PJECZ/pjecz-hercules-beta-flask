@@ -3,21 +3,49 @@ Sentencias, vistas
 """
 
 import json
+from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from pytz import timezone
+from werkzeug.datastructures import CombinedMultiDict
+from werkzeug.exceptions import NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.materias_tipos_juicios.models import MateriaTipoJuicio
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.sentencias.forms import SentenciaEditForm, SentenciaNewForm
 from pjecz_hercules_beta_flask.blueprints.sentencias.models import Sentencia
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_expediente, safe_message, safe_sentencia, safe_string
+from pjecz_hercules_beta_flask.lib.exceptions import (
+    MyBucketNotFoundError,
+    MyFilenameError,
+    MyFileNotFoundError,
+    MyMissingConfigurationError,
+    MyNotAllowedExtensionError,
+    MyNotValidParamError,
+    MyUnknownExtensionError,
+)
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
+from pjecz_hercules_beta_flask.lib.safe_string import (
+    extract_expediente_anio,
+    extract_expediente_num,
+    safe_clave,
+    safe_expediente,
+    safe_message,
+    safe_sentencia,
+    safe_string,
+)
+from pjecz_hercules_beta_flask.lib.storage import GoogleCloudStorage
 
 MODULO = "SENTENCIAS"
+LIMITE_DIAS = 3650  # Diez años
+LIMITE_DIAS_EDITAR = LIMITE_DIAS_ELIMINAR = LIMITE_DIAS_RECUPERAR = 7
+LIMITE_ADMINISTRADORES_DIAS = 7300  # Administradores pueden manipular veinte años
 
 sentencias = Blueprint("sentencias", __name__, template_folder="templates")
 
@@ -176,11 +204,330 @@ def detail(sentencia_id):
 def new():
     """Subir Sentencia como juzgado"""
 
+    # Validar autoridad
+    autoridad = current_user.autoridad
+    if autoridad is None or autoridad.estatus != "A":
+        flash("El juzgado/autoridad no existe o no es activa.", "warning")
+        return redirect(url_for("sentencias.list_active"))
+    if not autoridad.distrito.es_distrito_judicial:
+        flash("El juzgado/autoridad no está en un distrito jurisdiccional.", "warning")
+        return redirect(url_for("sentencias.list_active"))
+    if not autoridad.es_jurisdiccional:
+        flash("El juzgado/autoridad no es jurisdiccional.", "warning")
+        return redirect(url_for("sentencias.list_active"))
+    if autoridad.directorio_sentencias is None or autoridad.directorio_sentencias == "":
+        flash("El juzgado/autoridad no tiene directorio para sentencias.", "warning")
+        return redirect(url_for("sentencias.list_active"))
+
+    # Definir la fecha límite para el juzgado
+    hoy = date.today()
+    hoy_dt = datetime(year=hoy.year, month=hoy.month, day=hoy.day)
+    limite_dt = hoy_dt + timedelta(days=-LIMITE_DIAS)
+
+    # Si viene el formulario
+    form = SentenciaNewForm(CombinedMultiDict((request.files, request.form)))
+    if form.validate_on_submit():
+        es_valido = True
+
+        # Validar fecha
+        fecha = form.fecha.data
+        if not limite_dt <= datetime(year=fecha.year, month=fecha.month, day=fecha.day) <= hoy_dt:
+            flash(f"La fecha no debe ser del futuro ni anterior a {LIMITE_DIAS} días.", "warning")
+            es_valido = False
+
+        # Validar sentencia
+        try:
+            sentencia_input = safe_sentencia(form.sentencia.data)
+        except IndexError, ValueError:
+            flash("La sentencia es incorrecta.", "warning")
+            es_valido = False
+
+        # Validar sentencia_fecha
+        sentencia_fecha = form.sentencia_fecha.data
+        if not limite_dt <= datetime(year=sentencia_fecha.year, month=sentencia_fecha.month, day=sentencia_fecha.day) <= hoy_dt:
+            flash(f"La fecha de la sentencia no debe ser del futuro ni anterior a {LIMITE_DIAS} días.", "warning")
+            es_valido = False
+
+        # Validar expediente
+        try:
+            expediente = safe_expediente(form.expediente.data)
+        except IndexError, ValueError:
+            flash("El expediente es incorrecto.", "warning")
+            es_valido = False
+
+        # Tomar tipo de juicio
+        materia_tipo_juicio = MateriaTipoJuicio.query.get(form.materia_tipo_juicio.data)
+
+        # Tomar descripcion
+        descripcion = safe_string(form.descripcion.data, max_len=1000)
+
+        # Tomar perspectiva de género
+        es_perspectiva_genero = form.es_perspectiva_genero.data  # Boleano
+
+        # Inicializar la liberia GCS con el directorio base, la fecha, las extensiones y los meses como palabras
+        gcstorage = GoogleCloudStorage(
+            base_directory=autoridad.directorio_sentencias,
+            upload_date=fecha,
+            allowed_extensions=["pdf"],
+            month_in_word=True,
+            bucket_name=current_app.config["CLOUD_STORAGE_DEPOSITO_SENTENCIAS"],
+        )
+
+        # Validar archivo
+        archivo = request.files["archivo"]
+        try:
+            gcstorage.set_content_type(archivo.filename)
+        except MyNotAllowedExtensionError:
+            flash("Tipo de archivo no permitido.", "warning")
+            es_valido = False
+        except MyUnknownExtensionError:
+            flash("Tipo de archivo desconocido.", "warning")
+            es_valido = False
+
+        # Si es valido
+        if es_valido:
+            # Insertar registro
+            sentencia = Sentencia(
+                autoridad=autoridad,
+                materia_tipo_juicio=materia_tipo_juicio,
+                sentencia=sentencia_input,
+                sentencia_fecha=sentencia_fecha,
+                expediente=expediente,
+                expediente_anio=extract_expediente_anio(expediente),
+                expediente_num=extract_expediente_num(expediente),
+                fecha=fecha,
+                descripcion=descripcion,
+                es_perspectiva_genero=es_perspectiva_genero,
+            )
+            sentencia.save()
+
+            # El nombre del archivo contiene FECHA/SENTENCIA/EXPEDIENTE/PERSPECTIVA_GENERO/HASH
+            nombre_elementos = []
+            nombre_elementos.append(sentencia_input.replace("/", "-"))
+            nombre_elementos.append(expediente.replace("/", "-"))
+            if es_perspectiva_genero:
+                nombre_elementos.append("G")
+
+            # Subir a Google Cloud Storage
+            es_exitoso = True
+            try:
+                gcstorage.set_filename(hashed_id=sentencia.encode_id(), description="-".join(nombre_elementos))
+                gcstorage.upload(archivo.stream.read())
+            except MyFilenameError, MyNotAllowedExtensionError, MyUnknownExtensionError:
+                flash("Error fatal al subir el archivo a GCS.", "warning")
+                es_exitoso = False
+            except MyMissingConfigurationError:
+                flash("Error al subir el archivo porque falla la configuración de GCS.", "danger")
+                es_exitoso = False
+            except Exception:
+                flash("Error desconocido al subir el archivo.", "danger")
+                es_exitoso = False
+
+            # Si se sube con éxito, actualizar el registro con la URL del archivo y mostrar el detalle
+            if es_exitoso:
+                sentencia.archivo = gcstorage.filename  # Conservar el nombre original
+                sentencia.url = gcstorage.url
+                sentencia.save()
+                bitacora = Bitacora(
+                    modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+                    usuario=current_user,
+                    descripcion=safe_message(
+                        f"Nueva Sentencia de {autoridad.clave} con sentencia {sentencia.sentencia} y del expediente {sentencia.expediente}"
+                    ),
+                    url=url_for("sentencias.detail", sentencia_id=sentencia.id),
+                )
+                bitacora.save()
+                flash(bitacora.descripcion, "success")
+                return redirect(bitacora.url)
+
+            # Como no se subio con exito, se cambia el estatus a "B"
+            sentencia.estatus = "B"
+            sentencia.save()
+
+    # Llenar de los campos del formulario
+    form.distrito.data = autoridad.distrito.nombre
+    form.autoridad.data = autoridad.descripcion
+    form.fecha.data = hoy
+
+    # Entregar el formulario
+    return render_template(
+        "sentencias/new.jinja2",
+        form=form,
+        autoridad=autoridad,
+        materias=Materia.query.filter_by(en_sentencias=True).filter_by(estatus="A").order_by(Materia.id).all(),
+        materias_tipos_juicios=MateriaTipoJuicio.query.filter_by(estatus="A")
+        .order_by(MateriaTipoJuicio.materia_id, MateriaTipoJuicio.descripcion)
+        .all(),
+    )
+
 
 @sentencias.route("/sentencias/nuevo/<int:autoridad_id>", methods=["GET", "POST"])
 @permission_required(MODULO, Permiso.ADMINISTRAR)
 def new_with_autoridad_id(autoridad_id):
     """Subir Sentencia para una autoridad como administrador"""
+
+    # Validar autoridad
+    autoridad = Autoridad.query.get_or_404(autoridad_id)
+    if autoridad is None:
+        flash("El juzgado/autoridad no existe.", "warning")
+        return redirect(url_for("sentencias.list_active"))
+    if autoridad.estatus != "A":
+        flash("El juzgado/autoridad no es activa.", "warning")
+        return redirect(url_for("autoridades.detail", autoridad_id=autoridad.id))
+    if not autoridad.distrito.es_distrito_judicial:
+        flash("El juzgado/autoridad no está en un distrito jurisdiccional.", "warning")
+        return redirect(url_for("autoridades.detail", autoridad_id=autoridad.id))
+    if not autoridad.es_jurisdiccional:
+        flash("El juzgado/autoridad no es jurisdiccional.", "warning")
+        return redirect(url_for("autoridades.detail", autoridad_id=autoridad.id))
+    if autoridad.directorio_sentencias is None or autoridad.directorio_sentencias == "":
+        flash("El juzgado/autoridad no tiene directorio para sentencias.", "warning")
+        return redirect(url_for("autoridades.detail", autoridad_id=autoridad.id))
+
+    # Para validar las fechas
+    hoy = date.today()
+    hoy_dt = datetime(year=hoy.year, month=hoy.month, day=hoy.day)
+    limite_dt = hoy_dt + timedelta(days=-LIMITE_ADMINISTRADORES_DIAS)
+
+    # Si viene el formulario
+    form = SentenciaNewForm(CombinedMultiDict((request.files, request.form)))
+    if form.validate_on_submit():
+        es_valido = True
+
+        # Validar sentencia
+        try:
+            sentencia_input = safe_sentencia(form.sentencia.data)
+        except IndexError, ValueError:
+            flash("La sentencia es incorrecta.", "warning")
+            es_valido = False
+
+        # Validar sentencia_fecha
+        sentencia_fecha = form.sentencia_fecha.data
+        if not limite_dt <= datetime(year=sentencia_fecha.year, month=sentencia_fecha.month, day=sentencia_fecha.day) <= hoy_dt:
+            flash(
+                f"La fecha de la sentencia no debe ser del futuro ni anterior a {LIMITE_ADMINISTRADORES_DIAS} días.", "warning"
+            )
+            es_valido = False
+
+        # Validar expediente
+        try:
+            expediente = safe_expediente(form.expediente.data)
+        except IndexError, ValueError:
+            flash("El expediente es incorrecto.", "warning")
+            es_valido = False
+
+        # Validar fecha
+        fecha = form.fecha.data
+        if not limite_dt <= datetime(year=fecha.year, month=fecha.month, day=fecha.day) <= hoy_dt:
+            flash(f"La fecha no debe ser del futuro ni anterior a {LIMITE_ADMINISTRADORES_DIAS} días.", "warning")
+            es_valido = False
+
+        # Tomar tipo de juicio
+        materia_tipo_juicio = MateriaTipoJuicio.query.get(form.materia_tipo_juicio.data)
+
+        # Tomar descripción
+        descripcion = safe_string(form.descripcion.data, save_enie=True, max_len=1000)
+
+        # Tomar perspectiva de género
+        es_perspectiva_genero = form.es_perspectiva_genero.data  # Boleano
+
+        # Inicializar la liberia GCS con el directorio base, la fecha, las extensiones y los meses como palabras
+        gcstorage = GoogleCloudStorage(
+            base_directory=autoridad.directorio_sentencias,
+            upload_date=fecha,
+            allowed_extensions=["pdf"],
+            month_in_word=True,
+            bucket_name=current_app.config["CLOUD_STORAGE_DEPOSITO_SENTENCIAS"],
+        )
+
+        # Validar archivo
+        archivo = request.files["archivo"]
+        try:
+            gcstorage.set_content_type(archivo.filename)
+        except MyFilenameError, MyNotAllowedExtensionError, MyUnknownExtensionError:
+            flash("Tipo de archivo no permitido.", "warning")
+            es_valido = False
+        except Exception:
+            flash("Error desconocido al validar el archivo.", "danger")
+            es_valido = False
+
+        # No es válido, entonces se vuelve a mostrar el formulario
+        if es_valido is False:
+            return render_template("sentencias/new_for_autoridad.jinja2", form=form, autoridad=autoridad)
+
+        # Insertar registro
+        sentencia = Sentencia(
+            autoridad=autoridad,
+            materia_tipo_juicio=materia_tipo_juicio,
+            sentencia=sentencia_input,
+            sentencia_fecha=sentencia_fecha,
+            expediente=expediente,
+            expediente_anio=extract_expediente_anio(expediente),
+            expediente_num=extract_expediente_num(expediente),
+            fecha=fecha,
+            descripcion=descripcion,
+            es_perspectiva_genero=es_perspectiva_genero,
+        )
+        sentencia.save()
+
+        # El nombre del archivo contiene FECHA/SENTENCIA/EXPEDIENTE/PERSPECTIVA_GENERO/HASH
+        nombre_elementos = []
+        nombre_elementos.append(sentencia_input.replace("/", "-"))
+        nombre_elementos.append(expediente.replace("/", "-"))
+        if es_perspectiva_genero:
+            nombre_elementos.append("G")
+
+        # Subir a Google Cloud Storage
+        es_exitoso = True
+        try:
+            gcstorage.set_filename(hashed_id=sentencia.encode_id(), description="-".join(nombre_elementos))
+            gcstorage.upload(archivo.stream.read())
+        except MyFilenameError, MyNotAllowedExtensionError, MyUnknownExtensionError:
+            flash("Error fatal al subir el archivo a GCS.", "warning")
+            es_exitoso = False
+        except MyMissingConfigurationError:
+            flash("Error al subir el archivo porque falla la configuración de GCS.", "danger")
+            es_exitoso = False
+        except Exception:
+            flash("Error desconocido al subir el archivo.", "danger")
+            es_exitoso = False
+
+        # Si se sube con exito, actualizar el registro con la URL del archivo y mostrar el detalle
+        if es_exitoso:
+            sentencia.archivo = gcstorage.filename  # Conservar el nombre original
+            sentencia.url = gcstorage.url
+            sentencia.save()
+            bitacora = Bitacora(
+                modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+                usuario=current_user,
+                descripcion=safe_message(
+                    f"Nueva Sentencia de {autoridad.clave} con sentencia {sentencia.sentencia} y del expediente {sentencia.expediente}"
+                ),
+                url=url_for("sentencias.detail", sentencia_id=sentencia.id),
+            )
+            bitacora.save()
+            flash(bitacora.descripcion, "success")
+            return redirect(bitacora.url)
+
+        # Como no se subio con exito, se cambia el estatus a "B"
+        sentencia.estatus = "B"
+        sentencia.save()
+
+    # Valores por defecto
+    form.distrito.data = autoridad.distrito.nombre
+    form.autoridad.data = autoridad.descripcion
+    form.fecha.data = hoy
+
+    # Entregar el formulario
+    return render_template(
+        "sentencias/new_for_autoridad.jinja2",
+        form=form,
+        autoridad=autoridad,
+        materias=Materia.query.filter_by(en_sentencias=True).filter_by(estatus="A").order_by(Materia.id).all(),
+        materias_tipos_juicios=MateriaTipoJuicio.query.filter_by(estatus="A")
+        .order_by(MateriaTipoJuicio.materia_id, MateriaTipoJuicio.descripcion)
+        .all(),
+    )
 
 
 @sentencias.route("/sentencias/editar/<int:sentencia_id>", methods=["GET", "POST"])
@@ -188,11 +535,163 @@ def new_with_autoridad_id(autoridad_id):
 def edit(sentencia_id):
     """Editar Sentencia"""
 
+    # Consultar
+    sentencia = Sentencia.query.get_or_404(sentencia_id)
+
+    # Si NO es administrador
+    if not (current_user.can_admin(MODULO)):
+        # Validar que le pertenezca
+        if current_user.autoridad_id != sentencia.autoridad_id:
+            flash("No puede editar registros ajenos.", "warning")
+            return redirect(url_for("sentencias.list_active"))
+        # Si fue creado hace más de LIMITES_DIAS_EDITAR
+        if sentencia.creado < datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_EDITAR):
+            flash(f"Ya no puede editar porque fue creado hace más de {LIMITE_DIAS_EDITAR} dias.", "warning")
+            return redirect(url_for("sentencias.detail", sentencia_id=sentencia.id))
+
+    # Definir la fecha límite
+    hoy = date.today()
+    hoy_dt = datetime(year=hoy.year, month=hoy.month, day=hoy.day)
+    limite_dt = hoy_dt + timedelta(days=-LIMITE_DIAS)
+
+    # Si viene el formulario
+    form = SentenciaEditForm()
+    if form.validate_on_submit():
+        es_valido = True
+
+        # Validar fecha
+        fecha = form.fecha.data
+        if not limite_dt <= datetime(year=fecha.year, month=fecha.month, day=fecha.day) <= hoy_dt:
+            flash(f"La fecha no debe ser del futuro ni anterior a {LIMITE_DIAS} días.", "warning")
+            form.fecha.data = hoy
+            es_valido = False
+
+        # Validar sentencia_numero
+        try:
+            sentencia_numero = safe_sentencia(form.sentencia.data)
+        except IndexError, ValueError:
+            flash("La sentencia es incorrecta.", "warning")
+            es_valido = False
+
+        # Validar sentencia_fecha
+        sentencia_fecha = form.sentencia_fecha.data
+        if not limite_dt <= datetime(year=sentencia_fecha.year, month=sentencia_fecha.month, day=sentencia_fecha.day) <= hoy_dt:
+            flash(f"La fecha de la sentencia no debe ser del futuro ni anterior a {LIMITE_DIAS} días.", "warning")
+            es_valido = False
+
+        # Validar expediente
+        try:
+            expediente = safe_expediente(form.expediente.data)
+            expediente_anio = extract_expediente_anio(expediente)
+            expediente_num = extract_expediente_num(expediente)
+        except IndexError, ValueError:
+            flash("El expediente es incorrecto.", "warning")
+            es_valido = False
+
+        # Tomar perspectiva de género
+        es_perspectiva_genero = form.es_perspectiva_genero.data
+
+        # Tomar tipo de juicio
+        materia_tipo_juicio = MateriaTipoJuicio.query.get(form.materia_tipo_juicio.data)
+
+        # Tomar descripción
+        descripcion = safe_string(form.descripcion.data, max_len=1000)
+
+        # Si es válido, entonces se guarda
+        if es_valido:
+            sentencia.sentencia = sentencia_numero
+            sentencia.fecha = fecha
+            sentencia.sentencia_fecha = sentencia_fecha
+            sentencia.expediente = expediente
+            sentencia.expediente_anio = expediente_anio
+            sentencia.expediente_num = expediente_num
+            sentencia.materia_tipo_juicio_id = materia_tipo_juicio.id
+            sentencia.descripcion = descripcion
+            sentencia.es_perspectiva_genero = es_perspectiva_genero
+            sentencia.save()
+            bitacora = Bitacora(
+                modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+                usuario=current_user,
+                descripcion=safe_message(
+                    f"Editada la Sentencia de {sentencia.autoridad.clave} con sentencia {sentencia.sentencia} y del expediente {sentencia.expediente}"
+                ),
+                url=url_for("sentencias.detail", sentencia_id=sentencia.id),
+            )
+            bitacora.save()
+            flash(bitacora.descripcion, "success")
+            return redirect(bitacora.url)
+
+    # Definir valores en el formulario
+    form.sentencia.data = sentencia.sentencia  # sentencia_numero
+    form.fecha.data = sentencia.fecha
+    form.sentencia_fecha.data = sentencia.sentencia_fecha
+    form.expediente.data = sentencia.expediente
+    form.descripcion.data = sentencia.descripcion
+    form.es_perspectiva_genero.data = sentencia.es_perspectiva_genero
+
+    # Entregar el formulario
+    return render_template(
+        "sentencias/edit.jinja2",
+        form=form,
+        sentencia=sentencia,
+        materias=Materia.query.filter_by(en_sentencias=True).filter_by(estatus="A").order_by(Materia.id).all(),
+        materias_tipos_juicios=MateriaTipoJuicio.query.filter_by(estatus="A")
+        .order_by(MateriaTipoJuicio.materia_id, MateriaTipoJuicio.descripcion)
+        .all(),
+    )
+
 
 @sentencias.route("/sentencias/eliminar/<int:sentencia_id>")
 @permission_required(MODULO, Permiso.CREAR)
 def delete(sentencia_id):
     """Eliminar Sentencia"""
+
+    # Consultar
+    sentencia = Sentencia.query.get_or_404(sentencia_id)
+    detalle_url = url_for("sentencias.detail", sentencia_id=sentencia.id)
+
+    # Validar que se pueda eliminar
+    if sentencia.estatus == "B":
+        flash("No puede eliminar esta Sentencia porque ya está eliminada.", "success")
+        return redirect(detalle_url)
+
+    # Definir la descripción para la bitácora
+    descripcion = safe_message(f"Eliminada Sentencia {sentencia.id}")
+
+    # Si es administrador, puede eliminar
+    if current_user.can_admin(MODULO):
+        sentencia.delete()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=descripcion,
+            url=detalle_url,
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+
+    # Si NO le pertenece, mostrar mensaje y redirigir
+    if current_user.autoridad_id != sentencia.autoridad_id:
+        flash("No se puede eliminar porque no le pertenece.", "warning")
+        return redirect(detalle_url)
+
+    # Si fue creado hace menos del límite de días
+    if sentencia.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_ELIMINAR):
+        sentencia.delete()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=descripcion,
+            url=detalle_url,
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+
+    # No se puede eliminar
+    flash(f"No se puede eliminar porque fue creado hace más de {LIMITE_DIAS_ELIMINAR} dias.", "warning")
+    return redirect(detalle_url)
 
 
 @sentencias.route("/sentencias/recuperar/<int:sentencia_id>")
@@ -200,12 +699,94 @@ def delete(sentencia_id):
 def recover(sentencia_id):
     """Recuperar Sentencia"""
 
+    # Consultar
+    sentencia = Sentencia.query.get_or_404(sentencia_id)
+    detalle_url = url_for("sentencias.detail", sentencia_id=sentencia.id)
+
+    # Validar que se pueda recuperar
+    if sentencia.estatus == "A":
+        flash("No puede eliminar esta Sentencia porque ya está activa.", "success")
+        return redirect(detalle_url)
+
+    # Definir la descripción para la bitácora
+    descripcion = safe_message(f"Recuperada Sentencia {sentencia.id}")
+
+    # Si es administrador, puede recuperar
+    if current_user.can_admin(MODULO):
+        sentencia.recover()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=descripcion,
+            url=detalle_url,
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+
+    # Si NO le pertenece, mostrar mensaje y redirigir
+    if current_user.autoridad_id != sentencia.autoridad_id:
+        flash("No se puede recuperar porque no le pertenece.", "warning")
+        return redirect(detalle_url)
+
+    # Si fue creado hace menos del límite de días
+    if sentencia.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_RECUPERAR):
+        sentencia.recover()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=descripcion,
+            url=detalle_url,
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+
+    # No se puede recuperar
+    flash(f"No se puede recuperar porque fue creado hace más de {LIMITE_DIAS_RECUPERAR} dias.", "warning")
+    return redirect(detalle_url)
+
 
 @sentencias.route("/sentencias/ver_archivo_pdf/<int:sentencia_id>")
 def view_file_pdf(sentencia_id):
     """Ver archivo PDF de una Sentencia para insertarlo en un iframe en el detalle"""
 
+    # Consultar
+    sentencia = Sentencia.query.get_or_404(sentencia_id)
+
+    # Obtener el contenido del archivo
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=current_app.config["CLOUD_STORAGE_DEPOSITO_SENTENCIAS"],
+            blob_name=get_blob_name_from_url(sentencia.url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+
+    # Entregar el archivo
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    return response
+
 
 @sentencias.route("/sentencias/descargar_archivo_pdf/<int:sentencia_id>")
 def download_file_pdf(sentencia_id):
     """Descargar archivo PDF de una Sentencia"""
+
+    # Consultar
+    sentencia = Sentencia.query.get_or_404(sentencia_id)
+
+    # Obtener el contenido del archivo
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=current_app.config["CLOUD_STORAGE_DEPOSITO_SENTENCIAS"],
+            blob_name=get_blob_name_from_url(sentencia.url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+
+    # Entregar el archivo
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename={sentencia.archivo}"
+    return response
