@@ -8,7 +8,7 @@ import time
 
 from hashids import Hashids
 
-from ..config.settings import get_settings
+from pjecz_hercules_beta_flask.config.settings import get_settings
 
 settings = get_settings()
 

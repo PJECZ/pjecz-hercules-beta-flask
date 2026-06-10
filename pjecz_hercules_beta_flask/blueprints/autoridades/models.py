@@ -7,8 +7,8 @@ from typing import List, Optional
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...config.extensions import database
-from ...lib.universal_mixin import UniversalMixin
+from pjecz_hercules_beta_flask.config.extensions import database
+from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
 
 
 class Autoridad(database.Model, UniversalMixin):
@@ -101,12 +101,13 @@ class Autoridad(database.Model, UniversalMixin):
     # autoridades_funcionarios: Mapped[List["AutoridadFuncionario"]] = relationship(back_populates="autoridad")
     # cid_areas_autoridades: Mapped[List["CIDAreaAutoridad"]] = relationship(back_populates="autoridad")
     # cid_procedimientos: Mapped[List["CIDProcedimiento"]] = relationship(back_populates="autoridad")
-    # edictos: Mapped[List["Edicto"]] = relationship(back_populates="autoridad")
+    edictos: Mapped[List["Edicto"]] = relationship(back_populates="autoridad")
+    estrados: Mapped[List["Estrado"]] = relationship(back_populates="autoridad")
     # exh_exhortos: Mapped[List["ExhExhorto"]] = relationship(back_populates="autoridad")
-    # glosas: Mapped[List["Glosa"]] = relationship(back_populates="autoridad")
-    # listas_de_acuerdos: Mapped[List["ListaDeAcuerdo"]] = relationship(back_populates="autoridad")
+    glosas: Mapped[List["Glosa"]] = relationship(back_populates="autoridad")
+    listas_de_acuerdos: Mapped[List["ListaDeAcuerdo"]] = relationship(back_populates="autoridad")
     # redam: Mapped[List["Redam"]] = relationship(back_populates="autoridad")
-    # sentencias: Mapped[List["Sentencia"]] = relationship(back_populates="autoridad")
+    sentencias: Mapped[List["Sentencia"]] = relationship(back_populates="autoridad")
     # ubicaciones_expedientes: Mapped[List["UbicacionExpediente"]] = relationship(back_populates="autoridad")
     usuarios: Mapped[List["Usuario"]] = relationship(back_populates="autoridad")
 

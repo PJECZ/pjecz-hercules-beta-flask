@@ -1,0 +1,127 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/list.jinja2' as list %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons(titulo) %}
+        {# Si hay filtro por autoridad #}
+        {% if mostrar_filtro_autoridad_clave %}
+            {{ topbar.button_previous('Todos los Edictos', url_for('edictos.list_active')) }}
+        {% endif %}
+        {# Mostrar el botón para subir si tiene permiso y es su autoridad #}
+        {% if current_user.can_insert('EDICTOS') %}
+            {{ topbar.button_upload('Subir Edicto', url_for('edictos.new')) }}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call list.card() %}
+        <!-- Filtros Edictos -->
+        <div class="row">
+            <div class="col">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosDTEdictos.buscar(); return false;">
+                    {% if mostrar_filtro_autoridad_clave %}
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroAutoridadClave" type="text" class="form-control" aria-label="Autoridad clave" style="text-transform: uppercase;">
+                            <label for="filtroAutoridadClave">Autoridad clave</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroFechaDesde" type="date" class="form-control" aria-label="Fecha Desde">
+                            <label for="filtroFechaDesde">Fecha Desde</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroFechaHasta" type="date" class="form-control" aria-label="Fecha Hasta">
+                            <label for="filtroFechaHasta">Fecha Hasta</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroDescripcion" type="text" class="form-control" aria-label="Descripción" style="text-transform: uppercase;">
+                            <label for="filtroDescripcion">Descripción</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroExpediente" type="text" class="form-control" aria-label="Expediente" style="text-transform: uppercase;">
+                            <label for="filtroExpediente">Expediente</label>
+                        </div>
+                    </div>
+                    <div class="{% if mostrar_filtro_autoridad_clave %}col-2{% else %}col-4{% endif %} text-end">
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDTEdictos.buscar(); return false;" id="button-buscar"><span class="iconify" data-icon="mdi:magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDTEdictos.limpiar();" id="button-limpiar"><span class="iconify" data-icon="mdi:broom"></span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- DataTable Edictos -->
+        <table id="edictos_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Autoridad</th>
+                    <th>Descripción</th>
+                    <th>Expediente</th>
+                    <th>No. Pub.</th>
+                    <th>D. de A.</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script src="{{ url_for('static', filename='js/datatables-constructor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datatables-filtros.js') }}"></script>
+    <script>
+        // DataTable Edictos
+        const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+        let configDTEdictos = constructorDataTable.config();
+        configDTEdictos['ajax']['url'] = "{{ url_for('edictos.datatable_json') }}";
+        configDTEdictos['ajax']['data'] = {{ filtros }};
+        configDTEdictos['columns'] = [
+            { data: "fecha" },
+            { data: "autoridad_clave" },
+            { data: "detalle" },
+            { data: "expediente" },
+            { data: "numero_publicacion" },
+            { data: "es_declaracion_de_ausencia" }
+        ];
+        configDTEdictos['columnDefs'] = [
+            {
+                targets: 0, // fecha
+                type: "date",
+                render: function (data, type, row) {
+                    return moment(data).format('YYYY-MM-DD');
+                }
+            },
+            {
+                targets: 2, // detalle
+                data: null,
+                render: function(data, type, row, meta) {
+                    let interior = data.descripcion;
+                    if (data.descripcion.length > 48) {
+                        interior = '<span title="' + data.descripcion + '">' + data.descripcion.substring(0, 48) + '…</span>';
+                    }
+                    return '<a href="' + data.url + '">' + interior + '</a>';
+                }
+            }
+        ];
+        // Filtros Edictos
+        const filtrosDTEdictos = new FiltrosDataTable('#edictos_datatable', configDTEdictos);
+        {% if mostrar_filtro_autoridad_clave %}filtrosDTEdictos.agregarInput('filtroAutoridadClave', 'autoridad_clave');{% endif %}
+        filtrosDTEdictos.agregarInput('filtroFechaDesde', 'fecha_desde');
+        filtrosDTEdictos.agregarInput('filtroFechaHasta', 'fecha_hasta');
+        filtrosDTEdictos.agregarInput('filtroDescripcion', 'descripcion');
+        filtrosDTEdictos.agregarInput('filtroExpediente', 'expediente');
+        filtrosDTEdictos.precargar();
+    </script>
+{% endblock %}

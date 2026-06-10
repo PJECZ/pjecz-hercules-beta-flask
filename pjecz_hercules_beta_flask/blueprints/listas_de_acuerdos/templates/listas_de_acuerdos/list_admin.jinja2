@@ -1,0 +1,123 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/list.jinja2' as list %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons(titulo) %}
+        {# Si viene la autoridad #}
+        {% if autoridad %}
+            {{ topbar.button_previous('Todos las L. de A.', url_for('listas_de_acuerdos.list_active')) }}
+            {# Entonces pasar la autoridad como parametro #}
+            {{ topbar.button_upload('Subir L. de A. para ' + autoridad.clave, url_for('listas_de_acuerdos.new_with_autoridad_id', autoridad_id=autoridad.id)) }}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('listas_de_acuerdos.list_inactive') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('listas_de_acuerdos.list_active') + '?autoridad_clave=' + autoridad.clave) }}{% endif %}
+        {% else %}
+            {# De lo contrario no se tiene #}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('listas_de_acuerdos.list_inactive')) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('listas_de_acuerdos.list_active')) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call list.card() %}
+        <!-- Filtros Listas de Acuerdos -->
+        <div class="row">
+            <div class="col">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosDTListasDeAcuerdos.buscar(); return false;">
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroAutoridadClave" type="text" class="form-control" aria-label="Autoridad clave" style="text-transform: uppercase;">
+                            <label for="filtroAutoridadClave">Autoridad clave</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroCreadoDesde" type="date" class="form-control" aria-label="Creado Desde">
+                            <label for="filtroCreadoDesde">Creado Desde</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroCreadoHasta" type="date" class="form-control" aria-label="Creado Hasta">
+                            <label for="filtroCreadoHasta">Creado Hasta</label>
+                        </div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDTListasDeAcuerdos.buscar(); return false;" id="button-buscar"><span class="iconify" data-icon="mdi:magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDTListasDeAcuerdos.limpiar();" id="button-limpiar"><span class="iconify" data-icon="mdi:broom"></span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- DataTable Listas de Acuerdos -->
+        <table id="listas_de_acuerdos_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Creado</th>
+                    <th>Autoridad</th>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script src="{{ url_for('static', filename='js/datatables-constructor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datatables-filtros.js') }}"></script>
+    <script>
+        // DataTable Listas de Acuerdos
+        const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+        let configDTListasDeAcuerdos = constructorDataTable.config();
+        configDTListasDeAcuerdos['ajax']['url'] = "{{ url_for('listas_de_acuerdos.admin_datatable_json') }}";
+        configDTListasDeAcuerdos['ajax']['data'] = {{ filtros }};
+        configDTListasDeAcuerdos['columns'] = [
+            {data: 'detalle'},
+            {data: 'creado'},
+            {data: 'autoridad_clave'},
+            {data: 'fecha'},
+            {data: 'descripcion'}
+        ];
+        configDTListasDeAcuerdos['columnDefs'] = [
+            {
+                targets: 0, // detalle
+                data: null,
+                render: function (data, type, row, meta) {
+                    return '<a href="' + data.url + '">' + data.id + '</a>';
+                }
+            },
+            {
+                targets: 1, // creado
+                data: null,
+                render: function(data, type, row, meta) {
+                    let bandera = 'flag-checkered';
+                    let color = 'green';
+                    if (data.semaforo === 1) {
+                        bandera = 'flag-outline'; color = 'orange';
+                    } else if (data.semaforo > 1) {
+                        bandera = 'flag'; color = 'red';
+                    }
+                    return moment.utc(data.tiempo).local().format('YYYY-MM-DD HH:mm') + ' <span style="color: ' + color +  ';" class="iconify" data-icon="mdi:' + bandera + '"></span>';
+                }
+            },
+            {
+                targets: 3, // fecha
+                data: null,
+                render: function (data, type, row, meta) {
+                    return moment(data).format('YYYY-MM-DD');
+                }
+            }
+        ];
+        // Filtros Listas de Acuerdos
+        const filtrosDTListasDeAcuerdos = new FiltrosDataTable('#listas_de_acuerdos_datatable', configDTListasDeAcuerdos);
+        filtrosDTListasDeAcuerdos.agregarInput('filtroAutoridadClave', 'autoridad_clave');
+        filtrosDTListasDeAcuerdos.agregarInput('filtroCreadoDesde', 'creado_desde');
+        filtrosDTListasDeAcuerdos.agregarInput('filtroCreadoHasta', 'creado_hasta');
+        filtrosDTListasDeAcuerdos.precargar();
+    </script>
+{% endblock %}

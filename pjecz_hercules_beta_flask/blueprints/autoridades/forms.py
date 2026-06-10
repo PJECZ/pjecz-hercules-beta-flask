@@ -7,12 +7,12 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField, ColorField, IntegerField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 
-from ...lib.safe_string import CLAVE_REGEXP
-from ..distritos.models import Distrito
-from ..estados.models import Estado
-from ..materias.models import Materia
-from ..municipios.models import Municipio
-from .models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.distritos.models import Distrito
+from pjecz_hercules_beta_flask.blueprints.estados.models import Estado
+from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
+from pjecz_hercules_beta_flask.blueprints.municipios.models import Municipio
+from pjecz_hercules_beta_flask.lib.safe_string import CLAVE_REGEXP
 
 
 class AutoridadNewForm(FlaskForm):

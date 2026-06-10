@@ -6,16 +6,16 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.safe_string import safe_email, safe_message, safe_string
-from ..bitacoras.models import Bitacora
-from ..modulos.models import Modulo
-from ..permisos.models import Permiso
-from ..roles.models import Rol
-from ..usuarios.decorators import permission_required
-from ..usuarios.models import Usuario
-from .forms import UsuarioRolNewWithRolForm, UsuarioRolNewWithUsuarioForm
-from .models import UsuarioRol
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.roles.models import Rol
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.blueprints.usuarios_roles.forms import UsuarioRolNewWithRolForm, UsuarioRolNewWithUsuarioForm
+from pjecz_hercules_beta_flask.blueprints.usuarios_roles.models import UsuarioRol
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.safe_string import safe_email, safe_message, safe_string
 
 MODULO = "USUARIOS ROLES"
 

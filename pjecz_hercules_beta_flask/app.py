@@ -4,30 +4,36 @@ PJECZ Hercules Beta Flask
 
 from flask import Flask
 
-from .blueprints.autoridades.views import autoridades
-from .blueprints.bitacoras.views import bitacoras
-from .blueprints.bitacoras_apis.views import bitacoras_apis
-from .blueprints.distritos.views import distritos
-from .blueprints.domicilios.views import domicilios
-from .blueprints.entradas_salidas.views import entradas_salidas
-from .blueprints.estados.views import estados
-from .blueprints.materias.views import materias
-from .blueprints.modulos.views import modulos
-from .blueprints.municipios.views import municipios
-from .blueprints.ofi_documentos.views import ofi_documentos
-from .blueprints.ofi_documentos_adjuntos.views import ofi_documentos_adjuntos
-from .blueprints.ofi_documentos_destinatarios.views import ofi_documentos_destinatarios
-from .blueprints.ofi_plantillas.views import ofi_plantillas
-from .blueprints.oficinas.views import oficinas
-from .blueprints.permisos.views import permisos
-from .blueprints.roles.views import roles
-from .blueprints.sistemas.views import sistemas
-from .blueprints.tareas.views import tareas
-from .blueprints.usuarios.models import Usuario
-from .blueprints.usuarios.views import usuarios
-from .blueprints.usuarios_roles.views import usuarios_roles
-from .config.extensions import authentication, csrf, database, login_manager, moment
-from .config.settings import Settings
+from pjecz_hercules_beta_flask.blueprints.autoridades.views import autoridades
+from pjecz_hercules_beta_flask.blueprints.bitacoras.views import bitacoras
+from pjecz_hercules_beta_flask.blueprints.bitacoras_apis.views import bitacoras_apis
+from pjecz_hercules_beta_flask.blueprints.distritos.views import distritos
+from pjecz_hercules_beta_flask.blueprints.domicilios.views import domicilios
+from pjecz_hercules_beta_flask.blueprints.edictos.views import edictos
+from pjecz_hercules_beta_flask.blueprints.entradas_salidas.views import entradas_salidas
+from pjecz_hercules_beta_flask.blueprints.estados.views import estados
+from pjecz_hercules_beta_flask.blueprints.estrados.views import estrados
+from pjecz_hercules_beta_flask.blueprints.glosas.views import glosas
+from pjecz_hercules_beta_flask.blueprints.listas_de_acuerdos.views import listas_de_acuerdos
+from pjecz_hercules_beta_flask.blueprints.materias.views import materias
+from pjecz_hercules_beta_flask.blueprints.materias_tipos_juicios.views import materias_tipos_juicios
+from pjecz_hercules_beta_flask.blueprints.modulos.views import modulos
+from pjecz_hercules_beta_flask.blueprints.municipios.views import municipios
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos.views import ofi_documentos
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos_adjuntos.views import ofi_documentos_adjuntos
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos_destinatarios.views import ofi_documentos_destinatarios
+from pjecz_hercules_beta_flask.blueprints.ofi_plantillas.views import ofi_plantillas
+from pjecz_hercules_beta_flask.blueprints.oficinas.views import oficinas
+from pjecz_hercules_beta_flask.blueprints.permisos.views import permisos
+from pjecz_hercules_beta_flask.blueprints.roles.views import roles
+from pjecz_hercules_beta_flask.blueprints.sentencias.views import sentencias
+from pjecz_hercules_beta_flask.blueprints.sistemas.views import sistemas
+from pjecz_hercules_beta_flask.blueprints.tareas.views import tareas
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.blueprints.usuarios.views import usuarios
+from pjecz_hercules_beta_flask.blueprints.usuarios_roles.views import usuarios_roles
+from pjecz_hercules_beta_flask.config.extensions import authentication, csrf, database, login_manager, moment
+from pjecz_hercules_beta_flask.config.settings import Settings
 
 # Crear la aplicación
 app = Flask(__name__, instance_relative_config=True)
@@ -40,9 +46,14 @@ app.register_blueprint(bitacoras)
 app.register_blueprint(bitacoras_apis)
 app.register_blueprint(distritos)
 app.register_blueprint(domicilios)
+app.register_blueprint(edictos)
 app.register_blueprint(entradas_salidas)
 app.register_blueprint(estados)
+app.register_blueprint(estrados)
+app.register_blueprint(glosas)
+app.register_blueprint(listas_de_acuerdos)
 app.register_blueprint(materias)
+app.register_blueprint(materias_tipos_juicios)
 app.register_blueprint(modulos)
 app.register_blueprint(municipios)
 app.register_blueprint(oficinas)
@@ -52,6 +63,7 @@ app.register_blueprint(ofi_documentos_destinatarios)
 app.register_blueprint(ofi_plantillas)
 app.register_blueprint(permisos)
 app.register_blueprint(roles)
+app.register_blueprint(sentencias)
 app.register_blueprint(sistemas)
 app.register_blueprint(tareas)
 app.register_blueprint(usuarios)

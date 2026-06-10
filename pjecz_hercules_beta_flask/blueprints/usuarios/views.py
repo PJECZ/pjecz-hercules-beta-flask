@@ -13,21 +13,28 @@ from flask_login import current_user, login_required, login_user, logout_user
 from pytz import timezone
 from sqlalchemy import or_
 
-from ...config.firebase import get_firebase_settings
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.pwgen import generar_api_key, generar_contrasena
-from ...lib.safe_next_url import safe_next_url
-from ...lib.safe_string import CONTRASENA_REGEXP, EMAIL_REGEXP, TOKEN_REGEXP, safe_email, safe_message, safe_string
-from ..autoridades.models import Autoridad
-from ..bitacoras.models import Bitacora
-from ..distritos.models import Distrito
-from ..entradas_salidas.models import EntradaSalida
-from ..modulos.models import Modulo
-from ..oficinas.models import Oficina
-from ..permisos.models import Permiso
-from ..usuarios.decorators import anonymous_required, permission_required
-from .forms import AccesoForm, UsuarioForm
-from .models import Usuario
+from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.distritos.models import Distrito
+from pjecz_hercules_beta_flask.blueprints.entradas_salidas.models import EntradaSalida
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.oficinas.models import Oficina
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import anonymous_required, permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.forms import AccesoForm, UsuarioForm
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.config.firebase import get_firebase_settings
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.pwgen import generar_api_key, generar_contrasena
+from pjecz_hercules_beta_flask.lib.safe_next_url import safe_next_url
+from pjecz_hercules_beta_flask.lib.safe_string import (
+    CONTRASENA_REGEXP,
+    EMAIL_REGEXP,
+    TOKEN_REGEXP,
+    safe_email,
+    safe_message,
+    safe_string,
+)
 
 HTTP_REQUEST = google.auth.transport.requests.Request()
 

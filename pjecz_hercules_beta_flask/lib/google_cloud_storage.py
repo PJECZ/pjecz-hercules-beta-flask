@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlparse
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
 
-from .exceptions import (
+from pjecz_hercules_beta_flask.lib.exceptions import (
     MyBucketNotFoundError,
     MyFileNotAllowedError,
     MyFileNotFoundError,
