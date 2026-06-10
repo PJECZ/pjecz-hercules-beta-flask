@@ -27,18 +27,23 @@
 
 {% block content %}
     {% call detail.card(estatus=glosa.estatus) %}
-        {{ detail.label_value_big('Descripción', glosa.descripcion) }}
-        {{ detail.label_value('Distrito', glosa.autoridad.distrito.nombre) }}
-        {{ detail.label_value('Autoridad', glosa.autoridad.descripcion) }}
-        {{ detail.label_value('Fecha', moment(glosa.fecha, local=True).format("DD MMM YYYY")) }}
-        {{ detail.label_value('Tipo de juicio', glosa.tipo_juicio) }}
-        {{ detail.label_value('Expediente', glosa.expediente) }}
-        {{ detail.label_value_new_tab('Enlace público para descargar PDF', glosa.descargar_url, glosa.descargar_url) }}
-        {% if current_user.can_admin('GLOSAS') %}
-            {{ detail.label_value_new_tab('Descargar como administrador PDF', glosa.archivo, url_for('glosas.download', url=glosa.url)) }}
-        {% endif %}
-        {{ detail.label_value_new_tab('Acuse', 'De clic aqui', url_for('glosas.checkout', id_hashed=glosa.encode_id())) }}
-        {{ detail.label_value('Creado', moment(glosa.creado).format('llll')) }}
+        <div class="row">
+            <div class="col-md-6">
+                {{ detail.label_value('Distrito', glosa.autoridad.distrito.nombre) }}
+                {% if current_user.can_view("AUTORIDADES") %}
+                    {{ detail.label_value('Autoridad', glosa.autoridad.descripcion, url_for('autoridades.detail', autoridad_id=glosa.autoridad_id)) }}
+                {% else %}
+                    {{ detail.label_value('Autoridad', glosa.autoridad.descripcion) }}
+                {% endif %}
+                {{ detail.label_value('Descripción', glosa.descripcion) }}
+            </div>
+            <div class="col-md-6">
+                {{ detail.label_value('Fecha', glosa.fecha) }}
+                {{ detail.label_value('Tipo de juicio', glosa.tipo_juicio) }}
+                {{ detail.label_value('Expediente', glosa.expediente) }}
+                {{ detail.label_value('Creado', moment(glosa.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+            </div>
+        </div>
     {% endcall %}
 {% endblock %}
 

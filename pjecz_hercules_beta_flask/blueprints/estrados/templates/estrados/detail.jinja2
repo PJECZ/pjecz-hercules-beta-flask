@@ -31,7 +31,6 @@
         {{ detail.label_value('Distrito', estrado.autoridad.distrito.nombre) }}
         {{ detail.label_value('Autoridad', estrado.autoridad.descripcion) }}
         {{ detail.label_value('Fecha', moment(estrado.fecha, local=True).format("DD MMM YYYY")) }}
-        {{ detail.label_value_new_tab('Enlace público para descargar PDF', estrado.descargar_url, estrado.descargar_url) }}
         {% if current_user.can_admin('ESTRADOS') %}
             {{ detail.label_value_new_tab('Descargar como administrador PDF', estrado.archivo, url_for('estrados.download', url=estrado.url)) }}
         {% endif %}

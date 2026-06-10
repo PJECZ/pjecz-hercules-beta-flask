@@ -29,22 +29,35 @@
 
 {% block content %}
     {% call detail.card(estatus=sentencia.estatus) %}
-        {{ detail.label_value_big('Sentencia', sentencia.sentencia) }}
-        {{ detail.label_value('Distrito', sentencia.autoridad.distrito.nombre) }}
-        {{ detail.label_value('Autoridad', sentencia.autoridad.descripcion) }}
-        {{ detail.label_value('Fecha de la sentencia', moment(sentencia.sentencia_fecha, local=True).format("DD MMM YYYY")) }}
-        {{ detail.label_value('Expediente', sentencia.expediente) }}
-        {{ detail.label_value('Fecha de publicación', moment(sentencia.fecha, local=True).format("DD MMM YYYY")) }}
-        {{ detail.label_value('Materia', sentencia.materia_tipo_juicio.materia.nombre) }}
-        {{ detail.label_value('Tipo de Juicio', sentencia.materia_tipo_juicio.descripcion) }}
-        {{ detail.label_value('Descripción', sentencia.descripcion) }}
-        {{ detail.label_value_boolean('Es Perspectiva de Género', sentencia.es_perspectiva_genero) }}
-        {{ detail.label_value_new_tab('Enlace público para descargar PDF', sentencia.descargar_url, sentencia.descargar_url) }}
-        {% if current_user.can_admin('SENTENCIAS') %}
-            {{ detail.label_value_new_tab('Descargar como administrador PDF', sentencia.archivo, url_for('sentencias.download', url=sentencia.url)) }}
-        {% endif %}
-        {{ detail.label_value_new_tab('Acuse', 'De clic aqui', url_for('sentencias.checkout', id_hashed=sentencia.encode_id())) }}
-        {{ detail.label_value('Creado', moment(sentencia.creado).format('llll')) }}
+        <div class="row">
+            <div class="col-md-6">
+                {{ detail.label_value('Distrito', sentencia.autoridad.distrito.nombre) }}
+                {% if current_user.can_view("AUTORIDADES") %}
+                    {{ detail.label_value('Autoridad', sentencia.autoridad.descripcion, url_for('autoridades.detail', autoridad_id=sentencia.autoridad_id)) }}
+                {% else %}
+                    {{ detail.label_value('Autoridad', sentencia.autoridad.descripcion) }}
+                {% endif %}
+                {{ detail.label_value('Sentencia', sentencia.sentencia) }}
+                {{ detail.label_value('Expediente', sentencia.expediente) }}
+                {{ detail.label_value('Descripción', sentencia.descripcion) }}
+            </div>
+            <div class="col-md-6">
+                {{ detail.label_value('F. de la sentencia', sentencia.sentencia_fecha) }}
+                {{ detail.label_value('F. de publicación', sentencia.fecha) }}
+                {% if current_user.can_view("MATERIAS TIPOS JUICIOS") %}
+                    {{ detail.label_value('Materia', sentencia.materia_tipo_juicio.materia.nombre, url_for('materias.detail', materia_id=sentencia.materia_tipo_juicio.materia_id)) }}
+                {% else %}
+                    {{ detail.label_value('Materia', sentencia.materia_tipo_juicio.materia.nombre) }}
+                {% endif %}
+                {% if current_user.can_view("MATERIAS TIPOS JUICIOS") %}
+                    {{ detail.label_value('Tipo de Juicio', sentencia.materia_tipo_juicio.descripcion, url_for('materias_tipos_juicios.detail', materia_tipo_juicio_id=sentencia.materia_tipo_juicio_id)) }}
+                {% else %}
+                    {{ detail.label_value('Tipo de Juicio', sentencia.materia_tipo_juicio.descripcion) }}
+                {% endif %}
+                {{ detail.label_value_boolean('Es P. de Género', sentencia.es_perspectiva_genero) }}
+                {{ detail.label_value('Creado', moment(sentencia.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+            </div>
+        </div>
     {% endcall %}
 {% endblock %}
 

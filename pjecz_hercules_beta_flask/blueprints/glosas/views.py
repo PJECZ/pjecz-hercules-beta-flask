@@ -190,10 +190,12 @@ def list_active():
     filtros = None
     titulo = None
     mostrar_filtro_autoridad_clave = True
+
     # Si es administrador
     plantilla = "glosas/list.jinja2"
     if current_user.can_admin(MODULO):
         plantilla = "glosas/list_admin.jinja2"
+
     # Si viene autoridad_id o autoridad_clave en la URL, agregar a los filtros
     autoridad = None
     if "autoridad_id" in request.args and request.args.get("autoridad_id") is not None:
@@ -205,19 +207,23 @@ def list_active():
         filtros = {"estatus": "A", "autoridad_id": autoridad.id}
         titulo = f"Glosas de {autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
         titulo = "Todas las Glosas"
         filtros = {"estatus": "A"}
+
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
         filtros = {"estatus": "A", "autoridad_id": current_user.autoridad.id}
         titulo = f"Glosas de {current_user.autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # De lo contrario, es observador
     if titulo is None:
         filtros = {"estatus": "A"}
         titulo = "Glosas"
+
     # Entregar
     return render_template(
         plantilla,

@@ -130,7 +130,6 @@ def datatable_json():
                 },
                 "autoridad_clave": resultado.autoridad.clave,
                 "descripcion": resultado.descripcion,
-                "descargar_url": resultado.descargar_url,
                 "creado": {
                     "tiempo": creado_local.strftime("%Y-%m-%dT%H:%M:%S"),
                     "semaforo": semaforo,

@@ -227,10 +227,12 @@ def list_active():
     filtros = None
     titulo = None
     mostrar_filtro_autoridad_clave = True
+
     # Si es administrador
     plantilla = "sentencias/list.jinja2"
     if current_user.can_admin(MODULO):
         plantilla = "sentencias/list_admin.jinja2"
+
     # Si viene autoridad_id o autoridad_clave en la URL, agregar a los filtros
     autoridad = None
     if "autoridad_id" in request.args and request.args.get("autoridad_id") is not None:
@@ -242,6 +244,7 @@ def list_active():
         filtros = {"estatus": "A", "autoridad_id": autoridad.id}
         titulo = f"V.P. de Sentencias de {autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # Si viene materia_tipo_juicio_id en la URL, agregar a los filtros
     materia_tipo_juicio = None
     if "materia_tipo_juicio_id" in request.args and request.args.get("materia_tipo_juicio_id") is not None:
@@ -249,19 +252,23 @@ def list_active():
     if materia_tipo_juicio is not None:
         filtros = {"estatus": "A", "materia_tipo_juicio_id": materia_tipo_juicio.id}
         titulo = f"V.P. de Sentencias de {materia_tipo_juicio.descripcion}"
+
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
         titulo = "Todas las V.P. de Sentencias"
         filtros = {"estatus": "A"}
+
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
         filtros = {"estatus": "A", "autoridad_id": current_user.autoridad.id}
         titulo = f"V.P. de Sentencias de {current_user.autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # De lo contrario, es observador
     if titulo is None:
         filtros = {"estatus": "A"}
         titulo = "V.P. de Sentencias"
+
     # Entregar
     return render_template(
         plantilla,

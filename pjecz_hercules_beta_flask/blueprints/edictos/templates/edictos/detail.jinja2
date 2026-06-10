@@ -27,18 +27,24 @@
 
 {% block content %}
     {% call detail.card(estatus=edicto.estatus) %}
-        {{ detail.label_value_big('Descripción', edicto.descripcion) }}
-        {{ detail.label_value('Distrito', edicto.autoridad.distrito.nombre) }}
-        {{ detail.label_value('Autoridad', edicto.autoridad.descripcion) }}
-        {{ detail.label_value('Fecha', moment(edicto.fecha, local=True).format("DD MMM YYYY")) }}
-        {{ detail.label_value('Expediente', edicto.expediente) }}
-        {{ detail.label_value('No. publicación', edicto.numero_publicacion) }}
-        {{ detail.label_value_new_tab('Enlace público para descargar PDF', edicto.descargar_url, edicto.descargar_url) }}
-        {% if current_user.can_admin('EDICTOS') %}
-            {{ detail.label_value_new_tab('Descargar como administrador PDF', edicto.archivo, url_for('edictos.download', url=edicto.url)) }}
-        {% endif %}
-        {{ detail.label_value_new_tab('Acuse', 'De clic aqui', url_for('edictos.checkout', id_hashed=edicto.encode_id())) }}
-        {{ detail.label_value('Creado', moment(edicto.creado).format('llll')) }}
+        <div class="row">
+            <div class="col-md-6">
+                {{ detail.label_value('Distrito', edicto.autoridad.distrito.nombre) }}
+                {% if current_user.can_view("AUTORIDADES") %}
+                    {{ detail.label_value('Autoridad', edicto.autoridad.descripcion, url_for('autoridades.detail', autoridad_id=edicto.autoridad_id)) }}
+                {% else %}
+                    {{ detail.label_value('Autoridad', edicto.autoridad.descripcion) }}
+                {% endif %}
+                {{ detail.label_value('Descripción', edicto.descripcion) }}
+            </div>
+            <div class="col-md-6">
+                {{ detail.label_value('Fecha', edicto.fecha) }}
+                {{ detail.label_value('Expediente', edicto.expediente) }}
+                {{ detail.label_value('No. publicación', edicto.numero_publicacion) }}
+                {{ detail.label_value_boolean('Es Declaración de Ausencia', edicto.es_declaracion_de_ausencia) }}
+                {{ detail.label_value('Creado', moment(edicto.creado, local=False).format('DD MMM YYYY HH:mm')) }}
+            </div>
+        </div>
     {% endcall %}
 {% endblock %}
 

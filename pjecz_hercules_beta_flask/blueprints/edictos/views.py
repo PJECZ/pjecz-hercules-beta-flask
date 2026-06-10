@@ -104,17 +104,15 @@ def datatable_json():
     for resultado in registros:
         data.append(
             {
+                "fecha": resultado.fecha.strftime("%Y-%m-%d 00:00:00"),
+                "autoridad_clave": resultado.autoridad.clave,
                 "detalle": {
-                    "fecha": resultado.fecha.strftime("%Y-%m-%d 00:00:00"),
-                    "autoridad_clave": resultado.autoridad.clave,
-                    "detalle": {
-                        "descripcion": resultado.descripcion,
-                        "url": url_for("edictos.detail", edicto_id=resultado.id),
-                    },
-                    "expediente": resultado.expediente,
-                    "numero_publicacion": resultado.numero_publicacion,
-                    "es_declaracion_de_ausencia": "Sí" if resultado.es_declaracion_de_ausencia else "",
+                    "descripcion": resultado.descripcion,
+                    "url": url_for("edictos.detail", edicto_id=resultado.id),
                 },
+                "expediente": resultado.expediente,
+                "numero_publicacion": resultado.numero_publicacion,
+                "es_declaracion_de_ausencia": "Sí" if resultado.es_declaracion_de_ausencia else "",
             }
         )
 
@@ -209,10 +207,12 @@ def list_active():
     filtros = None
     titulo = None
     mostrar_filtro_autoridad_clave = True
+
     # Si es administrador
     plantilla = "edictos/list.jinja2"
     if current_user.can_admin(MODULO):
         plantilla = "edictos/list_admin.jinja2"
+
     # Si viene autoridad_id o autoridad_clave en la URL, agregar a los filtros
     autoridad = None
     if "autoridad_id" in request.args and request.args.get("autoridad_id") is not None:
@@ -224,19 +224,23 @@ def list_active():
         filtros = {"estatus": "A", "autoridad_id": autoridad.id}
         titulo = f"Edictos de {autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
         titulo = "Todos los Edictos"
         filtros = {"estatus": "A"}
+
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
         filtros = {"estatus": "A", "autoridad_id": current_user.autoridad.id}
         titulo = f"Edictos de {current_user.autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # De lo contrario, es observador
     if titulo is None:
         filtros = {"estatus": "A"}
         titulo = "Edictos"
+
     # Entregar
     return render_template(
         plantilla,
