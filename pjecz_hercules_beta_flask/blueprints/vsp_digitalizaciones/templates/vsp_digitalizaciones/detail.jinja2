@@ -10,9 +10,6 @@
 {% block topbar_actions %}
     {% call topbar.page_buttons('Digitalización ' + vsp_digitalizacion.expediente) %}
         {{ topbar.button_previous('Digitalizaciones', url_for('vsp_digitalizaciones.list_active')) }}
-        {% if current_user.can_edit('VSP DIGITALIZACIONES') %}
-            {{ topbar.button_edit('Editar', url_for('vsp_digitalizaciones.edit', vsp_digitalizacion_id=vsp_digitalizacion.id)) }}
-        {% endif %}
         {% if current_user.can_admin('VSP DIGITALIZACIONES') %}
             {% if vsp_digitalizacion.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('vsp_digitalizaciones.delete', vsp_digitalizacion_id=vsp_digitalizacion.id)) }}{% endif %}
             {% if vsp_digitalizacion.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('vsp_digitalizaciones.recover', vsp_digitalizacion_id=vsp_digitalizacion.id)) }}{% endif %}

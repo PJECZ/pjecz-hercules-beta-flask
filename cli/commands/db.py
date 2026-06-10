@@ -1019,6 +1019,79 @@ def copiar_sentencias(conn_pro, cursor_pro, conn_dev, cursor_dev):
     console.print(f"[green]{contador} registros copiados a la tabla sentencias.")
 
 
+def copiar_vsp_digitalizaciones(conn_pro, cursor_pro, conn_dev, cursor_dev):
+    """Copiar la tabla vsp_digitalizaciones de la BD producción (túnel SSH) a la BD local"""
+    console = Console()
+    # Determinar el número total de registros en la tabla vsp_digitalizaciones de la BD local
+    try:
+        cursor_dev.execute("SELECT COUNT(*) FROM vsp_digitalizaciones")
+        total_registros = cursor_dev.fetchone()[0]
+    except Exception as error:
+        raise Exception("Error al contar los registros en la BD local") from error
+    # Si ya hay registros, no hacer nada
+    if total_registros > 0:
+        console.print(f"[yellow]AVISO: No copio vsp_digitalizaciones porque ya tiene {total_registros} registros.")
+        return
+    # Determinar el número total de registros en la tabla vsp_digitalizaciones de la BD producción
+    try:
+        cursor_pro.execute("SELECT COUNT(*) FROM vsp_digitalizaciones")
+        total_registros = cursor_pro.fetchone()[0]
+    except Exception as error:
+        raise Exception("Error al contar los registros en la BD producción") from error
+    # Inicializar limit y offset para paginar la consulta de la BD producción
+    limit = 1000
+    offset = 0
+    contador = 0
+    # Bucle con la barra de progreso
+    with Progress() as progress:
+        task = progress.add_task("Copiando vsp_digitalizaciones...", total=total_registros)
+        while True:
+            # Leer registros en la BD producción
+            try:
+                cursor_pro.execute(
+                    """
+                        SELECT
+                            autoridad_id, expediente, expediente_anio, expediente_num,
+                            descripcion, observaciones, archivo_uuid, archivo, url, tamano, tiempo, enviado,
+                            creado, modificado, estatus
+                        FROM vsp_digitalizaciones
+                        ORDER BY id
+                        LIMIT %s OFFSET %s
+                    """,
+                    (limit, offset),
+                )
+                rows = cursor_pro.fetchall()
+            except Exception as error:
+                raise Exception("Error al consultar la BD producción") from error
+            # Si no hay más registros, salir del ciclo
+            if not rows:
+                break
+            # Insertar registros en la BD local
+            insert_query = """
+                INSERT INTO vsp_digitalizaciones
+                    (autoridad_id, expediente, expediente_anio, expediente_num,
+                    descripcion, observaciones, archivo_uuid, archivo, url, tamano, tiempo, enviado,
+                    creado, modificado, estatus)
+                VALUES
+                    (%s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s)
+            """
+            try:
+                for row in rows:
+                    cursor_dev.execute(insert_query, [*row])
+                    contador += 1
+            except Exception as error:
+                raise Exception(f"Error al insertar en la BD local: {error}") from error
+            # Confirmar los cambios
+            conn_dev.commit()
+            # Incrementar offset para la siguiente página
+            offset += limit
+            # Actualizar la barra de progreso
+            progress.update(task, advance=len(rows))
+    console.print(f"[green]{contador} registros copiados a la tabla vsp_digitalizaciones.")
+
+
 def respaldar_autoridades():
     """Respaldar Autoridades"""
     console = Console()
@@ -1553,6 +1626,7 @@ def copiar():
         copiar_glosas(conn_pro, cursor_pro, conn_dev, cursor_dev)
         copiar_listas_de_acuerdos(conn_pro, cursor_pro, conn_dev, cursor_dev)
         copiar_sentencias(conn_pro, cursor_pro, conn_dev, cursor_dev)
+        copiar_vsp_digitalizaciones(conn_pro, cursor_pro, conn_dev, cursor_dev)
     except Exception as error:
         console.print(f"[red]Error al copiar tablas:[/red] {error}")
     # Cerrar conexiones
