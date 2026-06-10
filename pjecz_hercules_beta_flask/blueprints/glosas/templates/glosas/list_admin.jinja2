@@ -88,7 +88,7 @@
         // DataTable Glosas
         const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
         let configDTGlosas = constructorDataTable.config();
-        configDTGlosas['ajax']['url'] = "{{ url_for('glosas.datatable_json') }}";
+        configDTGlosas['ajax']['url'] = "{{ url_for('glosas.admin_datatable_json') }}";
         configDTGlosas['ajax']['data'] = {{ filtros }};
         configDTGlosas['columns'] = [
             {data: 'detalle'},

@@ -97,7 +97,7 @@
         // DataTable Sentencias
         const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
         let configDTSentencias = constructorDataTable.config();
-        configDTSentencias['ajax']['url'] = "{{ url_for('sentencias.datatable_json') }}";
+        configDTSentencias['ajax']['url'] = "{{ url_for('sentencias.admin_datatable_json') }}";
         configDTSentencias['ajax']['data'] = {{ filtros }};
         configDTSentencias['columns'] = [
             { data: "detalle" },

@@ -3,11 +3,12 @@ Sentencias, vistas
 """
 
 import json
+import re
 from datetime import date, datetime, timedelta
 
+import pytz
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from pytz import timezone
 from werkzeug.datastructures import CombinedMultiDict
 from werkzeug.exceptions import NotFound
 
@@ -128,6 +129,98 @@ def datatable_json():
     return output_datatable_json(draw, total, data)
 
 
+@sentencias.route("/sentencias/admin_datatable_json", methods=["GET", "POST"])
+def admin_datatable_json():
+    """DataTable JSON con Sentencias para administrador"""
+
+    # Tomar parámetros de Datatables
+    draw, start, rows_per_page = get_datatable_parameters()
+
+    # Consultar
+    consulta = Sentencia.query
+
+    # Primero filtrar por columnas propias
+    if "estatus" in request.form:
+        consulta = consulta.filter(Sentencia.estatus == request.form["estatus"])
+    else:
+        consulta = consulta.filter(Sentencia.estatus == "A")
+    if "autoridad_id" in request.form:
+        autoridad = Autoridad.query.get(request.form["autoridad_id"])
+        if autoridad:
+            consulta = consulta.filter(Sentencia.autoridad_id == autoridad.id)
+    elif "autoridad_clave" in request.form:
+        autoridad_clave = safe_clave(request.form["autoridad_clave"])
+        if autoridad_clave != "":
+            consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+    if "materia_tipo_juicio_id" in request.form:
+        materia_tipo_juicio = MateriaTipoJuicio.query.get(request.form["materia_tipo_juicio_id"])
+        if materia_tipo_juicio:
+            consulta = consulta.filter(Sentencia.materia_tipo_juicio_id == materia_tipo_juicio.id)
+    elif "materia_tipo_juicio_descripcion" in request.form:
+        materia_tipo_juicio_descripcion = safe_string(request.form["materia_tipo_juicio_descripcion"], save_enie=True)
+        if materia_tipo_juicio_descripcion != "":
+            consulta = consulta.join(MateriaTipoJuicio).filter(
+                MateriaTipoJuicio.descripcion.contains(materia_tipo_juicio_descripcion)
+            )
+    if "descripcion" in request.form:
+        descripcion = safe_string(request.form["descripcion"], save_enie=True)
+        if descripcion != "":
+            consulta = consulta.filter(Sentencia.descripcion.contains(descripcion))
+    if "sentencia" in request.form:
+        try:
+            sentencia = safe_sentencia(request.form["sentencia"])
+            consulta = consulta.filter(Sentencia.sentencia == sentencia)
+        except IndexError, ValueError:
+            pass
+    if "expediente" in request.form:
+        try:
+            expediente = safe_expediente(request.form["expediente"])
+            consulta = consulta.filter(Sentencia.expediente == expediente)
+        except IndexError, ValueError:
+            pass
+
+    # Filtrar por creado, si vienen invertidas se corrigen
+    creado_desde = None
+    creado_hasta = None
+    if "creado_desde" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_desde"]):
+        creado_desde = request.form["creado_desde"]
+    if "creado_hasta" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_hasta"]):
+        creado_hasta = request.form["creado_hasta"]
+    if creado_desde and creado_hasta and creado_desde > creado_hasta:
+        creado_desde, creado_hasta = creado_hasta, creado_desde
+    if creado_desde:
+        consulta = consulta.filter(Sentencia.creado >= creado_desde)
+    if creado_hasta:
+        consulta = consulta.filter(Sentencia.creado <= creado_hasta)
+
+    # Ordenar y paginar
+    registros = consulta.order_by(Sentencia.id.desc()).offset(start).limit(rows_per_page).all()
+    total = consulta.count()
+
+    # Elaborar datos para DataTable
+    data = []
+    for sentencia in registros:
+        data.append(
+            {
+                "detalle": {
+                    "id": sentencia.id,
+                    "url": url_for("sentencias.detail", sentencia_id=sentencia.id),
+                },
+                "creado": sentencia.creado.strftime("%Y-%m-%dT%H:%M:%S"),
+                "autoridad": sentencia.autoridad.clave,
+                "fecha": sentencia.fecha.strftime("%Y-%m-%d 00:00:00"),
+                "sentencia": sentencia.sentencia,
+                "expediente": sentencia.expediente,
+                "materia_nombre": sentencia.materia_tipo_juicio.materia.nombre,
+                "materia_tipo_juicio_descripcion": sentencia.materia_tipo_juicio.descripcion,
+                "es_perspectiva_genero": "Sí" if sentencia.es_perspectiva_genero else "",
+            }
+        )
+
+    # Entregar JSON
+    return output_datatable_json(draw, total, data)
+
+
 @sentencias.route("/sentencias")
 def list_active():
     """Listado de Sentencias activos"""
@@ -147,7 +240,7 @@ def list_active():
         autoridad = Autoridad.query.filter_by(clave=autoridad_clave).first()
     if autoridad is not None:
         filtros = {"estatus": "A", "autoridad_id": autoridad.id}
-        titulo = f"Glosas de {autoridad.descripcion_corta}"
+        titulo = f"V.P. de Sentencias de {autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
     # Si viene materia_tipo_juicio_id en la URL, agregar a los filtros
     materia_tipo_juicio = None
@@ -155,20 +248,20 @@ def list_active():
         materia_tipo_juicio = MateriaTipoJuicio.query.get(request.args.get("materia_tipo_juicio_id"))
     if materia_tipo_juicio is not None:
         filtros = {"estatus": "A", "materia_tipo_juicio_id": materia_tipo_juicio.id}
-        titulo = f"Listas de Acuerdos de {materia_tipo_juicio.descripcion}"
+        titulo = f"V.P. de Sentencias de {materia_tipo_juicio.descripcion}"
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
-        titulo = "Todos los Glosas"
+        titulo = "Todas las V.P. de Sentencias"
         filtros = {"estatus": "A"}
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
         filtros = {"estatus": "A", "autoridad_id": current_user.autoridad.id}
-        titulo = f"Glosas de {current_user.autoridad.descripcion_corta}"
+        titulo = f"V.P. de Sentencias de {current_user.autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
     # De lo contrario, es observador
     if titulo is None:
         filtros = {"estatus": "A"}
-        titulo = "Glosas"
+        titulo = "V.P. de Sentencias"
     # Entregar
     return render_template(
         plantilla,
@@ -534,6 +627,7 @@ def new_with_autoridad_id(autoridad_id):
 @permission_required(MODULO, Permiso.MODIFICAR)
 def edit(sentencia_id):
     """Editar Sentencia"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     sentencia = Sentencia.query.get_or_404(sentencia_id)
@@ -545,7 +639,7 @@ def edit(sentencia_id):
             flash("No puede editar registros ajenos.", "warning")
             return redirect(url_for("sentencias.list_active"))
         # Si fue creado hace más de LIMITES_DIAS_EDITAR
-        if sentencia.creado < datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_EDITAR):
+        if sentencia.creado < datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_EDITAR):
             flash(f"Ya no puede editar porque fue creado hace más de {LIMITE_DIAS_EDITAR} dias.", "warning")
             return redirect(url_for("sentencias.detail", sentencia_id=sentencia.id))
 
@@ -645,6 +739,7 @@ def edit(sentencia_id):
 @permission_required(MODULO, Permiso.CREAR)
 def delete(sentencia_id):
     """Eliminar Sentencia"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     sentencia = Sentencia.query.get_or_404(sentencia_id)
@@ -677,7 +772,7 @@ def delete(sentencia_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if sentencia.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_ELIMINAR):
+    if sentencia.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_ELIMINAR):
         sentencia.delete()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -698,6 +793,7 @@ def delete(sentencia_id):
 @permission_required(MODULO, Permiso.CREAR)
 def recover(sentencia_id):
     """Recuperar Sentencia"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     sentencia = Sentencia.query.get_or_404(sentencia_id)
@@ -730,7 +826,7 @@ def recover(sentencia_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if sentencia.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_RECUPERAR):
+    if sentencia.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_RECUPERAR):
         sentencia.recover()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),

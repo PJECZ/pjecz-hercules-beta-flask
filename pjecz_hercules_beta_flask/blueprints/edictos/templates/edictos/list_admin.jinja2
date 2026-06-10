@@ -75,7 +75,7 @@
                     <th>Descripción</th>
                     <th>Expediente</th>
                     <th>No. Pub.</th>
-                    <th>Declaración de Ausencia</th>
+                    <th>D. de A.</th>
                 </tr>
             </thead>
         </table>
@@ -89,7 +89,7 @@
         // DataTable Edictos
         const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
         let configDTEdictos = constructorDataTable.config();
-        configDTEdictos['ajax']['url'] = '/edictos/admin_datatable_json';
+        configDTEdictos['ajax']['url'] = "{{ url_for('edictos.admin_datatable_json') }}";
         configDTEdictos['ajax']['data'] = {{ filtros }};
         configDTEdictos['columns'] = [
             { data: "detalle" },

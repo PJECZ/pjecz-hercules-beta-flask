@@ -3,11 +3,12 @@ Glosas, vistas
 """
 
 import json
+import re
 from datetime import date, datetime, timedelta
 
+import pytz
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from pytz import timezone
 from werkzeug.datastructures import CombinedMultiDict
 from werkzeug.exceptions import NotFound
 
@@ -56,10 +57,13 @@ def before_request():
 @glosas.route("/glosas/datatable_json", methods=["GET", "POST"])
 def datatable_json():
     """DataTable JSON para listado de Glosas"""
+
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
+
     # Consultar
     consulta = Glosa.query
+
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
         consulta = consulta.filter(Glosa.estatus == request.form["estatus"])
@@ -83,9 +87,11 @@ def datatable_json():
             consulta = consulta.filter(Glosa.expediente == expediente)
         except IndexError, ValueError:
             pass
+
     # Ordenar y paginar
     registros = consulta.order_by(Glosa.id.desc()).offset(start).limit(rows_per_page).all()
     total = consulta.count()
+
     # Elaborar datos para DataTable
     data = []
     for resultado in registros:
@@ -101,6 +107,79 @@ def datatable_json():
                 "tipo_juicio": resultado.tipo_juicio,
             }
         )
+
+    # Entregar JSON
+    return output_datatable_json(draw, total, data)
+
+
+@glosas.route("/glosas/admin_datatable_json", methods=["GET", "POST"])
+def admin_datatable_json():
+    """DataTable JSON con Glosa para administrador"""
+
+    # Tomar parámetros de Datatables
+    draw, start, rows_per_page = get_datatable_parameters()
+
+    # Consultar
+    consulta = Glosa.query
+
+    # Primero filtrar por columnas propias
+    if "estatus" in request.form:
+        consulta = consulta.filter(Glosa.estatus == request.form["estatus"])
+    else:
+        consulta = consulta.filter(Glosa.estatus == "A")
+    if "autoridad_id" in request.form:
+        consulta = consulta.filter(Glosa.autoridad_id == request.form["autoridad_id"])
+    elif "autoridad_clave" in request.form:
+        autoridad_clave = safe_clave(request.form["autoridad_clave"])
+        if autoridad_clave != "":
+            consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+    if "descripcion" in request.form:
+        descripcion = safe_string(request.form["descripcion"], save_enie=True)
+        if descripcion != "":
+            consulta = consulta.filter(Glosa.descripcion.contains(descripcion))
+    if "expediente" in request.form:
+        try:
+            expediente = safe_expediente(request.form["expediente"])
+            consulta = consulta.filter(Glosa.expediente == expediente)
+        except IndexError, ValueError:
+            pass
+
+    # Filtrar por creado, si vienen invertidas se corrigen
+    creado_desde = None
+    creado_hasta = None
+    if "creado_desde" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_desde"]):
+        creado_desde = request.form["creado_desde"]
+    if "creado_hasta" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_hasta"]):
+        creado_hasta = request.form["creado_hasta"]
+    if creado_desde and creado_hasta and creado_desde > creado_hasta:
+        creado_desde, creado_hasta = creado_hasta, creado_desde
+    if creado_desde:
+        consulta = consulta.filter(Glosa.fecha >= creado_desde)
+    if creado_hasta:
+        consulta = consulta.filter(Glosa.fecha <= creado_hasta)
+
+    # Ordenar y paginar
+    registros = consulta.order_by(Glosa.id.desc()).offset(start).limit(rows_per_page).all()
+    total = consulta.count()
+
+    # Elaborar datos para DataTable
+    data = []
+    for glosa in registros:
+        data.append(
+            {
+                "detalle": {
+                    "id": glosa.id,
+                    "url": url_for("glosas.detail", glosa_id=glosa.id),
+                },
+                "creado": glosa.creado.strftime("%Y-%m-%dT%H:%M:%S"),
+                "autoridad_clave": glosa.autoridad.clave,
+                "fecha": glosa.fecha.strftime("%Y-%m-%d 00:00:00"),
+                "descripcion": glosa.descripcion,
+                "expediente": glosa.expediente,
+                "tipo_juicio": glosa.tipo_juicio,
+            }
+        )
+
     # Entregar JSON
     return output_datatable_json(draw, total, data)
 
@@ -128,7 +207,7 @@ def list_active():
         mostrar_filtro_autoridad_clave = False
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
-        titulo = "Todos los Glosas"
+        titulo = "Todas las Glosas"
         filtros = {"estatus": "A"}
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
@@ -432,6 +511,7 @@ def new_with_autoridad_id(autoridad_id):
 @permission_required(MODULO, Permiso.MODIFICAR)
 def edit(glosa_id):
     """Editar Glosa"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     glosa = Glosa.query.get_or_404(glosa_id)
@@ -443,7 +523,7 @@ def edit(glosa_id):
             flash("No puede editar registros ajenos.", "warning")
             return redirect(url_for("glosas.list_active"))
         # Si fue creado hace más de LIMITES_DIAS_EDITAR
-        if glosa.creado < datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_EDITAR):
+        if glosa.creado < datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_EDITAR):
             flash(f"Ya no puede editar porque fue creado hace más de {LIMITE_DIAS_EDITAR} dias.", "warning")
             return redirect(url_for("glosas.detail", glosa_id=glosa.id))
 
@@ -511,6 +591,7 @@ def edit(glosa_id):
 @permission_required(MODULO, Permiso.CREAR)
 def delete(glosa_id):
     """Eliminar Glosa"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     glosa = Glosa.query.get_or_404(glosa_id)
@@ -543,7 +624,7 @@ def delete(glosa_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if glosa.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_ELIMINAR):
+    if glosa.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_ELIMINAR):
         glosa.delete()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -564,6 +645,7 @@ def delete(glosa_id):
 @permission_required(MODULO, Permiso.CREAR)
 def recover(glosa_id):
     """Recuperar Glosa"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     glosa = Glosa.query.get_or_404(glosa_id)
@@ -596,7 +678,7 @@ def recover(glosa_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if glosa.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_RECUPERAR):
+    if glosa.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_RECUPERAR):
         glosa.recover()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),

@@ -73,17 +73,17 @@
     <script>
         // DataTable Listas de Acuerdos
         const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
-        let configDataTable = constructorDataTable.config();
-        configDataTable['ajax']['url'] = "{{ url_for('listas_de_acuerdos.datatable_json') }}";
-        configDataTable['ajax']['data'] = {{ filtros }};
-        configDataTable['columns'] = [
+        let configDTListasDeAcuerdos = constructorDataTable.config();
+        configDTListasDeAcuerdos['ajax']['url'] = "{{ url_for('listas_de_acuerdos.admin_datatable_json') }}";
+        configDTListasDeAcuerdos['ajax']['data'] = {{ filtros }};
+        configDTListasDeAcuerdos['columns'] = [
             {data: 'detalle'},
             {data: 'creado'},
             {data: 'autoridad_clave'},
             {data: 'fecha'},
             {data: 'descripcion'}
         ];
-        configDataTable['columnDefs'] = [
+        configDTListasDeAcuerdos['columnDefs'] = [
             {
                 targets: 0, // detalle
                 data: null,

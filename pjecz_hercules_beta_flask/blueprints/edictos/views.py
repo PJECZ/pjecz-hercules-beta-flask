@@ -3,11 +3,12 @@ Edictos, vistas
 """
 
 import json
+import re
 from datetime import date, datetime, timedelta
 
+import pytz
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from pytz import timezone
 from werkzeug.datastructures import CombinedMultiDict
 from werkzeug.exceptions import NotFound
 
@@ -57,10 +58,13 @@ def before_request():
 @edictos.route("/edictos/datatable_json", methods=["GET", "POST"])
 def datatable_json():
     """DataTable JSON para listado de Edictos"""
+
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
+
     # Consultar
     consulta = Edicto.query
+
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
         consulta = consulta.filter(Edicto.estatus == request.form["estatus"])
@@ -90,9 +94,11 @@ def datatable_json():
             consulta = consulta.filter(Edicto.numero_publicacion == numero_publicacion)
         except IndexError, ValueError:
             pass
+
     # Ordenar y paginar
     registros = consulta.order_by(Edicto.id.desc()).offset(start).limit(rows_per_page).all()
     total = consulta.count()
+
     # Elaborar datos para DataTable
     data = []
     for resultado in registros:
@@ -111,6 +117,88 @@ def datatable_json():
                 },
             }
         )
+
+    # Entregar JSON
+    return output_datatable_json(draw, total, data)
+
+
+@edictos.route("/edictos/admin_datatable_json", methods=["GET", "POST"])
+def admin_datatable_json():
+    """DataTable JSON con Edicto para administrador"""
+
+    # Tomar parámetros de Datatables
+    draw, start, rows_per_page = get_datatable_parameters()
+
+    # Consultar
+    consulta = Edicto.query
+
+    # Primero filtrar por columnas propias
+    if "estatus" in request.form:
+        consulta = consulta.filter(Edicto.estatus == request.form["estatus"])
+    else:
+        consulta = consulta.filter(Edicto.estatus == "A")
+    if "autoridad_id" in request.form:
+        autoridad = Autoridad.query.get(request.form["autoridad_id"])
+        if autoridad:
+            consulta = consulta.filter(Edicto.autoridad_id == autoridad.id)
+    elif "autoridad_clave" in request.form:
+        autoridad_clave = safe_clave(request.form["autoridad_clave"])
+        if autoridad_clave != "":
+            consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+    if "descripcion" in request.form:
+        descripcion = safe_string(request.form["descripcion"], save_enie=True)
+        if descripcion != "":
+            consulta = consulta.filter(Edicto.descripcion.contains(descripcion))
+    if "expediente" in request.form:
+        try:
+            expediente = safe_expediente(request.form["expediente"])
+            consulta = consulta.filter(Edicto.expediente == expediente)
+        except IndexError, ValueError:
+            pass
+    if "numero_publicacion" in request.form:
+        try:
+            numero_publicacion = safe_numero_publicacion(request.form["numero_publicacion"])
+            consulta = consulta.filter(Edicto.numero_publicacion == numero_publicacion)
+        except IndexError, ValueError:
+            pass
+
+    # Filtrar por creado, si vienen invertidas se corrigen
+    creado_desde = None
+    creado_hasta = None
+    if "creado_desde" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_desde"]):
+        creado_desde = request.form["creado_desde"]
+    if "creado_hasta" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_hasta"]):
+        creado_hasta = request.form["creado_hasta"]
+    if creado_desde and creado_hasta and creado_desde > creado_hasta:
+        creado_desde, creado_hasta = creado_hasta, creado_desde
+    if creado_desde:
+        consulta = consulta.filter(Edicto.fecha >= creado_desde)
+    if creado_hasta:
+        consulta = consulta.filter(Edicto.fecha <= creado_hasta)
+
+    # Ordenar y paginar
+    registros = consulta.order_by(Edicto.id.desc()).offset(start).limit(rows_per_page).all()
+    total = consulta.count()
+
+    # Elaborar datos para DataTable
+    data = []
+    for edicto in registros:
+        data.append(
+            {
+                "detalle": {
+                    "id": edicto.id,
+                    "url": url_for("edictos.detail", edicto_id=edicto.id),
+                },
+                "creado": edicto.creado.strftime("%Y-%m-%dT%H:%M:%S"),
+                "autoridad": edicto.autoridad.clave,
+                "fecha": edicto.fecha.strftime("%Y-%m-%d 00:00:00"),
+                "descripcion": edicto.descripcion,
+                "expediente": edicto.expediente,
+                "es_declaracion_de_ausencia": "Sí" if edicto.es_declaracion_de_ausencia else "",
+                "numero_publicacion": edicto.numero_publicacion,
+            }
+        )
+
     # Entregar JSON
     return output_datatable_json(draw, total, data)
 
@@ -481,6 +569,7 @@ def new_with_autoridad_id(autoridad_id):
 @permission_required(MODULO, Permiso.MODIFICAR)
 def edit(edicto_id):
     """Editar Edicto"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     edicto = Edicto.query.get_or_404(edicto_id)
@@ -492,7 +581,7 @@ def edit(edicto_id):
             flash("No puede editar registros ajenos.", "warning")
             return redirect(url_for("edictos.list_active"))
         # Si fue creado hace más de LIMITES_DIAS_EDITAR
-        if edicto.creado < datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_EDITAR):
+        if edicto.creado < datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_EDITAR):
             flash(f"Ya no puede editar porque fue creado hace más de {LIMITE_DIAS_EDITAR} dias.", "warning")
             return redirect(url_for("edictos.detail", edicto_id=edicto.id))
 
@@ -579,6 +668,7 @@ def edit(edicto_id):
 @permission_required(MODULO, Permiso.CREAR)
 def delete(edicto_id):
     """Eliminar Edicto"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     edicto = Edicto.query.get_or_404(edicto_id)
@@ -611,7 +701,7 @@ def delete(edicto_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del limite de dias
-    if edicto.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_ELIMINAR):
+    if edicto.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_ELIMINAR):
         edicto.delete()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -632,6 +722,7 @@ def delete(edicto_id):
 @permission_required(MODULO, Permiso.CREAR)
 def recover(edicto_id):
     """Recuperar Edicto"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     edicto = Edicto.query.get_or_404(edicto_id)
@@ -664,7 +755,7 @@ def recover(edicto_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if edicto.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_RECUPERAR):
+    if edicto.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_RECUPERAR):
         edicto.recover()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),

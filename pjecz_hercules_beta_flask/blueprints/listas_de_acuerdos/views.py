@@ -3,11 +3,12 @@ Listas de Acuerdos, vistas
 """
 
 import json
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, time, timedelta
 
+import pytz
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from pytz import timezone
 from werkzeug.datastructures import CombinedMultiDict
 from werkzeug.exceptions import NotFound
 
@@ -58,10 +59,15 @@ def before_request():
 @listas_de_acuerdos.route("/listas_de_acuerdos/datatable_json", methods=["GET", "POST"])
 def datatable_json():
     """DataTable JSON para listado de Listas de Acuerdos"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
+    medianoche = time.min
+
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
+
     # Consultar
     consulta = ListaDeAcuerdo.query
+
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
         consulta = consulta.filter(ListaDeAcuerdo.estatus == request.form["estatus"])
@@ -79,6 +85,7 @@ def datatable_json():
         autoridad_clave = safe_clave(request.form["autoridad_clave"])
         if autoridad_clave != "":
             consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+
     # Filtrar por fechas, si vienen invertidas se corrigen
     fecha_desde = None
     fecha_hasta = None
@@ -92,12 +99,11 @@ def datatable_json():
         consulta = consulta.filter(ListaDeAcuerdo.fecha >= fecha_desde)
     if fecha_hasta:
         consulta = consulta.filter(ListaDeAcuerdo.fecha <= fecha_hasta)
+
     # Ordenar y paginar
     registros = consulta.order_by(ListaDeAcuerdo.id.desc()).offset(start).limit(rows_per_page).all()
     total = consulta.count()
-    # Tiempo
-    local_tz = pytz.timezone(current_app.config["TZ"])
-    medianoche = time.min
+
     # Elaborar datos para DataTable
     data = []
     for resultado in registros:
@@ -131,6 +137,89 @@ def datatable_json():
                 },
             }
         )
+
+    # Entregar JSON
+    return output_datatable_json(draw, total, data)
+
+
+@listas_de_acuerdos.route("/listas_de_acuerdos/admin_datatable_json", methods=["GET", "POST"])
+def admin_datatable_json():
+    """DataTable JSON con Lista De Acuerdos para administrador"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
+    medianoche = time.min
+
+    # Tomar parámetros de Datatables
+    draw, start, rows_per_page = get_datatable_parameters()
+
+    # Consultar
+    consulta = ListaDeAcuerdo.query
+
+    # Primero filtrar por columnas propias
+    if "estatus" in request.form:
+        consulta = consulta.filter(ListaDeAcuerdo.estatus == request.form["estatus"])
+    else:
+        consulta = consulta.filter(ListaDeAcuerdo.estatus == "A")
+    if "autoridad_id" in request.form:
+        consulta = consulta.filter(ListaDeAcuerdo.autoridad_id == request.form["autoridad_id"])
+    elif "autoridad_clave" in request.form:
+        autoridad_clave = safe_clave(request.form["autoridad_clave"])
+        if autoridad_clave != "":
+            consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+
+    # Filtrar por creado, si vienen invertidas se corrigen
+    creado_desde = None
+    creado_hasta = None
+    if "creado_desde" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_desde"]):
+        creado_desde = request.form["creado_desde"]
+    if "creado_hasta" in request.form and re.match(r"\d{4}-\d{2}-\d{2}", request.form["creado_hasta"]):
+        creado_hasta = request.form["creado_hasta"]
+    if creado_desde and creado_hasta and creado_desde > creado_hasta:
+        creado_desde, creado_hasta = creado_hasta, creado_desde
+    if creado_desde:
+        consulta = consulta.filter(ListaDeAcuerdo.fecha >= creado_desde)
+    if creado_hasta:
+        consulta = consulta.filter(ListaDeAcuerdo.fecha <= creado_hasta)
+
+    # Ordenar y paginar
+    registros = consulta.order_by(ListaDeAcuerdo.id.desc()).offset(start).limit(rows_per_page).all()
+    total = consulta.count()
+
+    # Elaborar datos para DataTable
+    data = []
+    for lista_de_acuerdo in registros:
+        # La columna creado esta en UTC, convertir a local
+        creado_local = lista_de_acuerdo.creado.astimezone(local_tz)
+        # Determinar el tiempo bueno
+        tiempo_limite_bueno = datetime.combine(lista_de_acuerdo.fecha, medianoche) + timedelta(hours=HORAS_BUENO)
+        # Determinar el tiempo critico
+        tiempo_limite_critico = datetime.combine(lista_de_acuerdo.fecha, medianoche) + timedelta(hours=HORAS_CRITICO)
+        # Por defecto el semáforo es verde (0)
+        semaforo = 0
+        # Si la autoridad tiene limite_dias_listas_de_acuerdos igual a cero
+        if lista_de_acuerdo.autoridad.limite_dias_listas_de_acuerdos == 0:
+            # Si creado_local es mayor a tiempo_limite_bueno, entonces el semáforo es amarillo (1)
+            if creado_local > local_tz.localize(tiempo_limite_bueno):
+                semaforo = 1
+            # Si creado_local es mayor a tiempo_limite_critico, entonces el semáforo es rojo (2)
+            if creado_local > local_tz.localize(tiempo_limite_critico):
+                semaforo = 2
+        # Acumular datos
+        data.append(
+            {
+                "detalle": {
+                    "id": lista_de_acuerdo.id,
+                    "url": url_for("listas_de_acuerdos.detail", lista_de_acuerdo_id=lista_de_acuerdo.id),
+                },
+                "creado": {
+                    "tiempo": lista_de_acuerdo.creado.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "semaforo": semaforo,
+                },
+                "autoridad_clave": lista_de_acuerdo.autoridad.clave,
+                "fecha": lista_de_acuerdo.fecha.strftime("%Y-%m-%d 00:00:00"),
+                "descripcion": lista_de_acuerdo.descripcion,
+            }
+        )
+
     # Entregar JSON
     return output_datatable_json(draw, total, data)
 
@@ -141,10 +230,12 @@ def list_active():
     filtros = None
     titulo = None
     mostrar_filtro_autoridad_clave = True
+
     # Si es administrador
-    plantilla = "glosas/list.jinja2"
+    plantilla = "listas_de_acuerdos/list.jinja2"
     if current_user.can_admin(MODULO):
-        plantilla = "glosas/list_admin.jinja2"
+        plantilla = "listas_de_acuerdos/list_admin.jinja2"
+
     # Si viene autoridad_id o autoridad_clave en la URL, agregar a los filtros
     autoridad = None
     if "autoridad_id" in request.args and request.args.get("autoridad_id") is not None:
@@ -154,21 +245,25 @@ def list_active():
         autoridad = Autoridad.query.filter_by(clave=autoridad_clave).first()
     if autoridad is not None:
         filtros = {"estatus": "A", "autoridad_id": autoridad.id}
-        titulo = f"Glosas de {autoridad.descripcion_corta}"
+        titulo = f"Listas de Acuerdos de {autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # Si es administrador
     if titulo is None and current_user.can_admin(MODULO):
-        titulo = "Todos los Glosas"
+        titulo = "Todas las Listas de Acuerdos"
         filtros = {"estatus": "A"}
+
     # Si puede editar o crear, solo ve lo de su autoridad
     if titulo is None and (current_user.can_insert(MODULO) or current_user.can_edit(MODULO)):
         filtros = {"estatus": "A", "autoridad_id": current_user.autoridad.id}
-        titulo = f"Glosas de {current_user.autoridad.descripcion_corta}"
+        titulo = f"Listas de Acuerdos de {current_user.autoridad.descripcion_corta}"
         mostrar_filtro_autoridad_clave = False
+
     # De lo contrario, es observador
     if titulo is None:
         filtros = {"estatus": "A"}
-        titulo = "Glosas"
+        titulo = "Listas de Acuerdos"
+
     # Entregar
     return render_template(
         plantilla,
@@ -203,6 +298,7 @@ def detail(lista_de_acuerdo_id):
 @permission_required(MODULO, Permiso.CREAR)
 def new():
     """Subir ListaDeAcuerdo como Juzgado"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Validar autoridad
     autoridad = current_user.autoridad
@@ -244,7 +340,6 @@ def new():
 
     # Si viene el formulario
     if form.validate_on_submit():
-        local_tz = timezone(current_app.config["TZ"])
         es_valido = True
 
         # Validar fecha
@@ -552,6 +647,7 @@ def new_with_autoridad_id(autoridad_id):
 @permission_required(MODULO, Permiso.CREAR)
 def delete(lista_de_acuerdo_id):
     """Eliminar ListaDeAcuerdo"""
+    local_tz = pytz.timezone(current_app.config["TZ"])
 
     # Consultar
     lista_de_acuerdo = ListaDeAcuerdo.query.get_or_404(lista_de_acuerdo_id)
@@ -585,7 +681,7 @@ def delete(lista_de_acuerdo_id):
         return redirect(detalle_url)
 
     # Si fue creado hace menos del límite de días
-    if lista_de_acuerdo.creado >= datetime.now(tz=timezone(current_app.config["TZ"])) - timedelta(days=LIMITE_DIAS_ELIMINAR):
+    if lista_de_acuerdo.creado >= datetime.now(tz=local_tz) - timedelta(days=LIMITE_DIAS_ELIMINAR):
         lista_de_acuerdo.delete()
         bitacora = Bitacora(
             modulo=Modulo.query.filter_by(nombre=MODULO).first(),
