@@ -32,6 +32,7 @@ from pjecz_hercules_beta_flask.blueprints.tareas.views import tareas
 from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
 from pjecz_hercules_beta_flask.blueprints.usuarios.views import usuarios
 from pjecz_hercules_beta_flask.blueprints.usuarios_roles.views import usuarios_roles
+from pjecz_hercules_beta_flask.blueprints.vsp_digitalizaciones.views import vsp_digitalizaciones
 from pjecz_hercules_beta_flask.config.extensions import authentication, csrf, database, login_manager, moment
 from pjecz_hercules_beta_flask.config.settings import Settings
 
@@ -68,6 +69,7 @@ app.register_blueprint(sistemas)
 app.register_blueprint(tareas)
 app.register_blueprint(usuarios)
 app.register_blueprint(usuarios_roles)
+app.register_blueprint(vsp_digitalizaciones)
 
 # Inicializar extensiones
 csrf.init_app(app)
