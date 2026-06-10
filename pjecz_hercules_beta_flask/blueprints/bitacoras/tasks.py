@@ -11,13 +11,13 @@ import sendgrid
 from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail, To
 
-from ...app import app
-from ...config.extensions import database
-from ...lib.exceptions import MyAnyError, MyNotExistsError, MyNotValidParamError
-from ...lib.tasks import set_task_error, set_task_progress
-from ..modulos.models import Modulo
-from ..usuarios.models import Usuario
-from .models import Bitacora
+from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.config.extensions import database
+from pjecz_hercules_beta_flask.lib.exceptions import MyAnyError, MyNotExistsError, MyNotValidParamError
+from pjecz_hercules_beta_flask.lib.tasks import set_task_error, set_task_progress
 
 # Constantes
 TIMEZONE = "America/Mexico_City"

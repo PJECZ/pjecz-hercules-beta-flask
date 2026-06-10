@@ -6,8 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField, IntegerField, SelectField, StringField, SubmitField, TimeField
 from wtforms.validators import DataRequired, Length, Optional
 
-from ..distritos.models import Distrito
-from ..domicilios.models import Domicilio
+from pjecz_hercules_beta_flask.blueprints.distritos.models import Distrito
+from pjecz_hercules_beta_flask.blueprints.domicilios.models import Domicilio
 
 
 class OficinaForm(FlaskForm):

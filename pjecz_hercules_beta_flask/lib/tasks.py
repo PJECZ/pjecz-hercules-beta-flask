@@ -4,7 +4,7 @@ Tareas en el fondo
 
 from rq import get_current_job
 
-from ..blueprints.tareas.models import Tarea
+from pjecz_hercules_beta_flask.blueprints.tareas.models import Tarea
 
 
 def set_task_progress(progress: int, message: str, archivo: str = "", url: str = "") -> None:

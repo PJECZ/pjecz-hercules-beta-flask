@@ -121,7 +121,7 @@ from google.cloud import storage
 from unidecode import unidecode
 from werkzeug.utils import secure_filename
 
-from .exceptions import MyFilenameError, MyNotAllowedExtensionError, MyUnknownExtensionError
+from pjecz_hercules_beta_flask.lib.exceptions import MyFilenameError, MyNotAllowedExtensionError, MyUnknownExtensionError
 
 locale.setlocale(locale.LC_TIME, "es_MX.utf8")
 

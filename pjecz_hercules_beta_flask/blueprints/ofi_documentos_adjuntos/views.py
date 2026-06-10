@@ -10,23 +10,28 @@ from flask_login import current_user, login_required
 from werkzeug.datastructures import CombinedMultiDict
 from werkzeug.utils import secure_filename
 
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.exceptions import (
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos.models import OfiDocumento
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos_adjuntos.forms import OfiDocumentoAdjuntoForm
+from pjecz_hercules_beta_flask.blueprints.ofi_documentos_adjuntos.models import OfiDocumentoAdjunto
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.exceptions import (
     MyBucketNotFoundError,
     MyFileNotFoundError,
     MyNotValidParamError,
     MyUploadError,
 )
-from ...lib.google_cloud_storage import EXTENSIONS_MEDIA_TYPES, get_blob_name_from_url, get_file_from_gcs, upload_file_to_gcs
-from ...lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
-from ..bitacoras.models import Bitacora
-from ..modulos.models import Modulo
-from ..ofi_documentos.models import OfiDocumento
-from ..permisos.models import Permiso
-from ..usuarios.decorators import permission_required
-from ..usuarios.models import Usuario
-from .forms import OfiDocumentoAdjuntoForm
-from .models import OfiDocumentoAdjunto
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import (
+    EXTENSIONS_MEDIA_TYPES,
+    get_blob_name_from_url,
+    get_file_from_gcs,
+    upload_file_to_gcs,
+)
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MAX_FILE_SIZE_MB = 20
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024

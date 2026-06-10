@@ -7,11 +7,11 @@ import json
 from flask import Blueprint, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ..permisos.models import Permiso
-from ..usuarios.decorators import permission_required
-from ..usuarios.models import Usuario
-from .models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
 
 MODULO = "BITACORAS"
 

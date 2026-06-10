@@ -7,8 +7,8 @@ from typing import List
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...config.extensions import database
-from ...lib.universal_mixin import UniversalMixin
+from pjecz_hercules_beta_flask.config.extensions import database
+from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
 
 
 class Materia(database.Model, UniversalMixin):
@@ -29,7 +29,7 @@ class Materia(database.Model, UniversalMixin):
 
     # Hijos
     autoridades: Mapped[List["Autoridad"]] = relationship(back_populates="materia")
-    # materias_tipos_juicios: Mapped[List["MateriaTipoJuicio"]] = relationship(back_populates="materia")
+    materias_tipos_juicios: Mapped[List["MateriaTipoJuicio"]] = relationship(back_populates="materia")
 
     def __repr__(self):
         """Representación"""

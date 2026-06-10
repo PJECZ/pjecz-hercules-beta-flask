@@ -7,17 +7,17 @@ import json
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from ...lib.clean_html import clean_html
-from ...lib.datatables import get_datatable_parameters, output_datatable_json
-from ...lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
-from ..autoridades.models import Autoridad
-from ..bitacoras.models import Bitacora
-from ..modulos.models import Modulo
-from ..permisos.models import Permiso
-from ..usuarios.decorators import permission_required
-from ..usuarios.models import Usuario
-from .forms import OfiPlantillaForm
-from .models import OfiPlantilla
+from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.blueprints.ofi_plantillas.forms import OfiPlantillaForm
+from pjecz_hercules_beta_flask.blueprints.ofi_plantillas.models import OfiPlantilla
+from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
+from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.lib.clean_html import clean_html
+from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "OFI PLANTILLAS"
 
