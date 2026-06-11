@@ -4,14 +4,17 @@ VASPEC Digitalizaciones, vistas
 
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 from werkzeug.exceptions import NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.blueprints.vsp_digitalizaciones.models import VspDigitalizacion
+from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
 from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
 from pjecz_hercules_beta_flask.lib.google_cloud_storage import (
@@ -92,6 +95,7 @@ def datatable_json():
                 "descripcion": resultado.descripcion if len(resultado.descripcion) < 48 else resultado.descripcion[:48] + "…",
                 "tamano": resultado.tamano if resultado.tamano is not None else "",
                 "tiempo": resultado.tiempo.strftime("%Y-%m-%d %H:%M") if resultado.tiempo is not None else "",
+                "enviado": resultado.enviado.strftime("%Y-%m-%d %H:%M") if resultado.enviado is not None else "",
             }
         )
 
@@ -163,6 +167,66 @@ def recover(vsp_digitalizacion_id):
         bitacora.save()
         flash(bitacora.descripcion, "success")
     return redirect(url_for("vsp_digitalizaciones.detail", vsp_digitalizacion_id=vsp_digitalizacion.id))
+
+
+@vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_totales_por_materia_por_anio")
+def get_totales_por_materia_por_anio_json():
+    """Obtener un listado de totales por materia por año"""
+
+    # Consultar los totales (copiados, enviados) por materia por año
+    consulta = (
+        database.session.query(
+            Materia.nombre.label("materia"),
+            VspDigitalizacion.expediente_anio.label("anio"),
+            func.count(VspDigitalizacion.id).label("copiados_total"),
+            func.count(VspDigitalizacion.enviado).label("enviados_total"),
+        )
+        .select_from(
+            VspDigitalizacion,
+        )
+        .join(
+            Autoridad,
+        )
+        .join(
+            Materia,
+        )
+        .where(
+            VspDigitalizacion.estatus == "A",
+        )
+        .group_by(
+            Materia.nombre,
+            VspDigitalizacion.expediente_anio,
+        )
+        .order_by(
+            VspDigitalizacion.expediente_anio,
+            Materia.nombre,
+        )
+        .all()
+    )
+
+    # Convertir la consulta a una lista de diccionarios
+    totales = [
+        {
+            "materia_nombre": row.materia,
+            "anio": row.anio,
+            "copiados_total": row.copiados_total,
+            "enviados_total": row.enviados_total,
+        }
+        for row in consulta
+    ]
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por materia",
+        "totales": totales,
+    }
+
+
+@vsp_digitalizaciones.route("/vsp_digitalizaciones/dashboard")
+def dashboard():
+    """Tablero de digitalizaciones"""
+    return render_template("vsp_digitalizaciones/dashboard.jinja2")
 
 
 @vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_archivo_url/<int:vsp_digitalizacion_id>")
