@@ -16,67 +16,75 @@
         <div id="dashboard_chart"></div>
     {% endcall %}
     {% call detail.card(title='Totales copiados/enviados por materia y año') %}
-        <table id="dashboard_datatable" class="table display nowrap" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Año</th>
-                    <th>Materia A</th>
-                    <th>Materia B</th>
-                </tr>
-            </thead>
-        </table>
+        <table id="dashboard_datatable" class="table display nowrap" style="width:100%"></table>
     {% endcall %}
 {% endblock %}
 
 {% block custom_javascript %}
     <script>
-    class ConfigDataTable {
-      // Constructor
-      constructor(csrf_token) {
-        this.csrf_token = csrf_token;
-      }
-      // Entregar configuracion
-      config() {
-        return {
-          processing: true,
-          serverSide: true,
-          ordering: false,
-          searching: false,
-          responsive: true,
-          scrollX: true,
-          ajax: {
-            url: null,
-            type: "GET",
-            headers: { "X-CSRF-TOKEN": this.csrf_token },
-            dataType: "json",
-            dataSrc: "data",
-            data: null,
-          },
-          columns: null,
-          columnDefs: null,
-          language: {
-            lengthMenu: "Mostrar _MENU_",
-            search: "Filtrar:",
-            zeroRecords: "No se encontraron registros",
-            info: "Total de registros _TOTAL_ ",
-            infoEmpty: "No hay registros",
-            infoFiltered: "(_TOTAL_ filtrados de _MAX_ registros)",
-            oPaginate: {
-              sFirst: "Primero",
-              sLast: "Último",
-              sNext: "Siguiente",
-              sPrevious: "Anterior",
+      // DataTable Dashboard - Totales por Materia por Año
+      fetch("{{ url_for('vsp_digitalizaciones.get_totales_por_materia_por_anio_json') }}", {
+        method: "GET",
+        headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+      })
+        .then((response) => response.json())
+        .then((json) => {
+          if (!json.success) {
+            console.error("Error al obtener los totales:", json.message);
+            return;
+          }
+
+          const totales = json.totales;
+
+          // Obtener las materias únicas ordenadas alfabéticamente
+          const materias = [...new Set(totales.map((r) => r.materia_nombre))].sort();
+
+          // Obtener los años únicos ordenados de mayor a menor
+          const anios = [...new Set(totales.map((r) => r.anio))].sort((a, b) => b - a);
+
+          // Construir un índice para acceso rápido: {anio: {materia: {copiados_total, enviados_total}}}
+          const indice = {};
+          totales.forEach((r) => {
+            if (!indice[r.anio]) indice[r.anio] = {};
+            indice[r.anio][r.materia_nombre] = {
+              copiados_total: r.copiados_total,
+              enviados_total: r.enviados_total,
+            };
+          });
+
+          // Construir las filas: una por año
+          const data = anios.map((anio) => {
+            const fila = { anio: anio };
+            materias.forEach((materia) => {
+              const celda = indice[anio] && indice[anio][materia];
+              fila[materia] = celda
+                ? `${celda.enviados_total} / ${celda.copiados_total}`
+                : "— / —";
+            });
+            return fila;
+          });
+
+          // Definir las columnas dinámicamente
+          const columns = [
+            { title: "Año", data: "anio" },
+            ...materias.map((materia) => ({ title: materia, data: materia })),
+          ];
+
+          // Inicializar DataTable
+          $("#dashboard_datatable").DataTable({
+            data: data,
+            columns: columns,
+            ordering: false,
+            searching: false,
+            responsive: true,
+            scrollX: true,
+            paging: false,
+            info: false,
+            language: {
+              zeroRecords: "No se encontraron registros",
             },
-          },
-        };
-      }
-    }
-    </script>
-    <script>
-      // DataTable Dashboard
-      const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
-      let configDataTable = constructorDataTable.config();
-      configDataTable['ajax']['url'] = "{{ url_for('vsp_digitalizaciones.get_totales_por_materia_por_anio_json') }}";
-      $('#dashboard_datatable').DataTable(configDataTable);
+          });
+        })
+        .catch((error) => console.error("Error al cargar el datatable:", error));
     </script>
 {% endblock %}

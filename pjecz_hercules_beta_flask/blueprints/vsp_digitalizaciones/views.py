@@ -197,6 +197,10 @@ def get_totales_por_materia_por_anio_json():
             Materia.nombre,
             VspDigitalizacion.expediente_anio,
         )
+        .order_by(
+            VspDigitalizacion.expediente_anio,
+            Materia.nombre,
+        )
         .all()
     )
 
