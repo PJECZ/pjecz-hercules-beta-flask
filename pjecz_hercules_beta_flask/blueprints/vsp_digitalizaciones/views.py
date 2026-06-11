@@ -4,7 +4,7 @@ VASPEC Digitalizaciones, vistas
 
 from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import Date, func
+from sqlalchemy import func
 from werkzeug.exceptions import NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
@@ -14,6 +14,7 @@ from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.blueprints.vsp_digitalizaciones.models import VspDigitalizacion
+from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
 from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
 from pjecz_hercules_beta_flask.lib.google_cloud_storage import (
@@ -172,20 +173,21 @@ def recover(vsp_digitalizacion_id):
 def get_totales_por_materia_por_anio_json():
     """Obtener un listado de totales por materia por año"""
 
-    # Obtener la base de datos en current_app
-    db = current_app.extensions["database"].get_db()
-
     # Consultar los totales (copiados, enviados) por materia por año
     consulta = (
-        db.session.query(
+        database.session.query(
             Materia.nombre.label("materia"),
             VspDigitalizacion.expediente_anio.label("anio"),
             func.count(VspDigitalizacion.id).label("copiados_total"),
             func.count(VspDigitalizacion.enviado).label("enviados_total"),
         )
-        .join(
+        .select_from(
             VspDigitalizacion,
+        )
+        .join(
             Autoridad,
+        )
+        .join(
             Materia,
         )
         .where(

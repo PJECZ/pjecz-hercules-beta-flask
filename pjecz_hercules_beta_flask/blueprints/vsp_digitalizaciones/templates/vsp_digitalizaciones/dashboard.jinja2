@@ -13,9 +13,7 @@
 
 {% block content %}
     {% call detail.card(title='Gráfico copiados/enviados por materia y año') %}
-        <table id="dashboard_datatable" class="table display nowrap" style="width:100%">
-            <div id="dashboard_chart"></div>
-        </table>
+        <div id="dashboard_chart"></div>
     {% endcall %}
     {% call detail.card(title='Totales copiados/enviados por materia y año') %}
         <table id="dashboard_datatable" class="table display nowrap" style="width:100%">
@@ -31,4 +29,54 @@
 {% endblock %}
 
 {% block custom_javascript %}
+    <script>
+    class ConfigDataTable {
+      // Constructor
+      constructor(csrf_token) {
+        this.csrf_token = csrf_token;
+      }
+      // Entregar configuracion
+      config() {
+        return {
+          processing: true,
+          serverSide: true,
+          ordering: false,
+          searching: false,
+          responsive: true,
+          scrollX: true,
+          ajax: {
+            url: null,
+            type: "GET",
+            headers: { "X-CSRF-TOKEN": this.csrf_token },
+            dataType: "json",
+            dataSrc: "data",
+            data: null,
+          },
+          columns: null,
+          columnDefs: null,
+          language: {
+            lengthMenu: "Mostrar _MENU_",
+            search: "Filtrar:",
+            zeroRecords: "No se encontraron registros",
+            info: "Total de registros _TOTAL_ ",
+            infoEmpty: "No hay registros",
+            infoFiltered: "(_TOTAL_ filtrados de _MAX_ registros)",
+            oPaginate: {
+              sFirst: "Primero",
+              sLast: "Último",
+              sNext: "Siguiente",
+              sPrevious: "Anterior",
+            },
+          },
+        };
+      }
+    }
+    </script>
+    <script>
+      // DataTable Dashboard
+      const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+      let configDataTable = constructorDataTable.config();
+      configDataTable['ajax']['url'] = "{{ url_for('vsp_digitalizaciones.get_totales_por_materia_por_anio_json') }}";
+      $('#dashboard_datatable').DataTable(configDataTable);
+    </script>
 {% endblock %}
