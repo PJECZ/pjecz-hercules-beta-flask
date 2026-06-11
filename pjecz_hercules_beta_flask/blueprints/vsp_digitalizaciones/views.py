@@ -92,6 +92,7 @@ def datatable_json():
                 "descripcion": resultado.descripcion if len(resultado.descripcion) < 48 else resultado.descripcion[:48] + "…",
                 "tamano": resultado.tamano if resultado.tamano is not None else "",
                 "tiempo": resultado.tiempo.strftime("%Y-%m-%d %H:%M") if resultado.tiempo is not None else "",
+                "enviado": resultado.enviado.strftime("%Y-%m-%d %H:%M") if resultado.enviado is not None else "",
             }
         )
 
@@ -163,6 +164,52 @@ def recover(vsp_digitalizacion_id):
         bitacora.save()
         flash(bitacora.descripcion, "success")
     return redirect(url_for("vsp_digitalizaciones.detail", vsp_digitalizacion_id=vsp_digitalizacion.id))
+
+
+@vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_totales_por_materia_por_anio")
+def get_totales_por_materia_por_anio_json():
+    """Obtener un listado de totales por materia por año"""
+
+    # TODO: Obtener los totales (copiados, enviados) por materia por año
+    totales = [
+        {
+            "materia_nombre": "Mercantil",
+            "anio": 2023,
+            "copiados_total": 232,
+            "enviados_total": 146,
+        },
+        {
+            "materia_nombre": "Mercantil",
+            "anio": 2024,
+            "copiados_total": 366,
+            "enviados_total": 221,
+        },
+        {
+            "materia_nombre": "Laboral",
+            "anio": 2023,
+            "copiados_total": 1020,
+            "enviados_total": 810,
+        },
+        {
+            "materia_nombre": "Laboral",
+            "anio": 2024,
+            "copiados_total": 1736,
+            "enviados_total": 1300,
+        },
+    ]
+
+    # Entregar la URL
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por materia",
+        "totales": totales,
+    }
+
+
+@vsp_digitalizaciones.route("/vsp_digitalizaciones/dashboard")
+def dashboard():
+    """Tablero de digitalizaciones"""
+    return render_template("vsp_digitalizaciones/dashboard.jinja2")
 
 
 @vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_archivo_url/<int:vsp_digitalizacion_id>")
