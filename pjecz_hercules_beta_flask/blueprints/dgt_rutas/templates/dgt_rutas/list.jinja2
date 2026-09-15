@@ -10,6 +10,9 @@
             {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_rutas.list_inactive')) }}{% endif %}
             {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_rutas.list_active')) }}{% endif %}
         {% endif %}
+        {% if current_user.can_insert('DGT RUTAS') %}
+            {{ topbar.button_new('Nueva DGT Ruta', url_for('dgt_rutas.new')) }}
+        {% endif %}
     {% endcall %}
 {% endblock %}
 

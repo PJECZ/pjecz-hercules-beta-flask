@@ -5,13 +5,16 @@ DGT Tipos, vistas
 import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.forms import DgtTipoForm
 from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_string, safe_uuid
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "DGT TIPOS"
 
@@ -39,7 +42,7 @@ def datatable_json():
         consulta = consulta.filter_by(estatus="A")
     if "clave" in request.form:
         try:
-            clave = safe_clave(request.form["clave"])
+            clave = safe_clave(request.form["clave"], max_len=64)
             if clave != "":
                 consulta = consulta.filter(DgtTipo.clave.contains(clave))
         except ValueError:
@@ -99,3 +102,115 @@ def detail(dgt_tipo_id):
         return redirect(url_for("dgt_tipos.list_active"))
     dgt_tipo = DgtTipo.query.get_or_404(dgt_tipo_id)
     return render_template("dgt_tipos/detail.jinja2", dgt_tipo=dgt_tipo)
+
+
+@dgt_tipos.route("/dgt_tipos/nuevo", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.CREAR)
+def new():
+    """Nuevo DGT Tipo"""
+    form = DgtTipoForm()
+    if form.validate_on_submit():
+        clave = safe_clave(form.clave.data, max_len=64)
+        descripcion = safe_string(form.descripcion.data, save_enie=True)
+        # Validar que la clave no se repita
+        if DgtTipo.query.filter_by(clave=clave).first():
+            flash("Esa clave ya está en uso. Debe de ser única.", "warning")
+            return render_template("dgt_tipos/new.jinja2", form=form)
+        # Guardar
+        dgt_tipo = DgtTipo(
+            clave=clave,
+            descripcion=descripcion,
+        )
+        dgt_tipo.save()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(f"Nuevo DGT Tipo {dgt_tipo.clave}"),
+            url=url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+        return redirect(bitacora.url)
+    return render_template("dgt_tipos/new.jinja2", form=form)
+
+
+@dgt_tipos.route("/dgt_tipos/edicion/<dgt_tipo_id>", methods=["GET", "POST"])
+@permission_required(MODULO, Permiso.MODIFICAR)
+def edit(dgt_tipo_id):
+    """Editar DGT Tipo"""
+    dgt_tipo_id = safe_uuid(dgt_tipo_id)
+    if dgt_tipo_id == "":
+        flash("ID de DGT Tipo inválido", "warning")
+        return redirect(url_for("dgt_tipos.list_active"))
+    dgt_tipo = DgtTipo.query.get_or_404(dgt_tipo_id)
+    form = DgtTipoForm()
+    if form.validate_on_submit():
+        es_valido = True
+        # Si cambia la clave verificar que no este en uso
+        clave = safe_clave(form.clave.data, max_len=64)
+        if dgt_tipo.clave != clave:
+            dgt_tipo_existente = DgtTipo.query.filter_by(clave=clave).first()
+            if dgt_tipo_existente and dgt_tipo_existente.id != dgt_tipo.id:
+                es_valido = False
+                flash("La clave ya está en uso. Debe de ser única.", "warning")
+        # Si es valido actualizar
+        if es_valido:
+            dgt_tipo.clave = clave
+            dgt_tipo.descripcion = safe_string(form.descripcion.data, save_enie=True)
+            dgt_tipo.save()
+            bitacora = Bitacora(
+                modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+                usuario=current_user,
+                descripcion=safe_message(f"Editado DGT Tipo {dgt_tipo.clave}"),
+                url=url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id),
+            )
+            bitacora.save()
+            flash(bitacora.descripcion, "success")
+            return redirect(bitacora.url)
+    form.clave.data = dgt_tipo.clave
+    form.descripcion.data = dgt_tipo.descripcion
+    return render_template("dgt_tipos/edit.jinja2", form=form, dgt_tipo=dgt_tipo)
+
+
+@dgt_tipos.route("/dgt_tipos/eliminar/<dgt_tipo_id>")
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def delete(dgt_tipo_id):
+    """Eliminar DGT Tipo"""
+    dgt_tipo_id = safe_uuid(dgt_tipo_id)
+    if dgt_tipo_id == "":
+        flash("ID de DGT Tipo inválido", "warning")
+        return redirect(url_for("dgt_tipos.list_active"))
+    dgt_tipo = DgtTipo.query.get_or_404(dgt_tipo_id)
+    if dgt_tipo.estatus == "A":
+        dgt_tipo.delete()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(f"Eliminado DGT Tipo {dgt_tipo.clave}"),
+            url=url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+    return redirect(url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id))
+
+
+@dgt_tipos.route("/dgt_tipos/recuperar/<dgt_tipo_id>")
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def recover(dgt_tipo_id):
+    """Recuperar DGT Tipo"""
+    dgt_tipo_id = safe_uuid(dgt_tipo_id)
+    if dgt_tipo_id == "":
+        flash("ID de DGT Tipo inválido", "warning")
+        return redirect(url_for("dgt_tipos.list_active"))
+    dgt_tipo = DgtTipo.query.get_or_404(dgt_tipo_id)
+    if dgt_tipo.estatus == "B":
+        dgt_tipo.recover()
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(f"Recuperado DGT Tipo {dgt_tipo.clave}"),
+            url=url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id),
+        )
+        bitacora.save()
+        flash(bitacora.descripcion, "success")
+    return redirect(url_for("dgt_tipos.detail", dgt_tipo_id=dgt_tipo.id))

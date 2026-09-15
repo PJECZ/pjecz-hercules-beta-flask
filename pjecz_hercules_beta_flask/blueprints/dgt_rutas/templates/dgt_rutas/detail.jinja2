@@ -1,5 +1,6 @@
 {% extends 'layouts/app.jinja2' %}
 {% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
 {% import 'macros/topbar.jinja2' as topbar %}
 
 {% block title %}DGT Ruta {{ dgt_ruta.clave }}{% endblock %}
@@ -7,6 +8,13 @@
 {% block topbar_actions %}
     {% call topbar.page_buttons('DGT Ruta ' + dgt_ruta.clave) %}
         {{ topbar.button_previous('DGT Rutas', url_for('dgt_rutas.list_active')) }}
+        {% if current_user.can_edit('DGT RUTAS') %}
+            {{ topbar.button_edit('Editar', url_for('dgt_rutas.edit', dgt_ruta_id=dgt_ruta.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('DGT RUTAS') %}
+            {% if dgt_ruta.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('dgt_rutas.delete', dgt_ruta_id=dgt_ruta.id)) }}{% endif %}
+            {% if dgt_ruta.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('dgt_rutas.recover', dgt_ruta_id=dgt_ruta.id)) }}{% endif %}
+        {% endif %}
     {% endcall %}
 {% endblock %}
 
@@ -27,4 +35,11 @@
             {{ detail.label_value('Directorio', dgt_ruta.directorio) }}
         </div>
     {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('DGT RUTAS') %}
+        {% if dgt_ruta.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
+        {% if dgt_ruta.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
+    {% endif %}
 {% endblock %}

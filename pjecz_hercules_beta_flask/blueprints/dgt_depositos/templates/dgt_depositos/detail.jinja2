@@ -1,5 +1,6 @@
 {% extends 'layouts/app.jinja2' %}
 {% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
 {% import 'macros/topbar.jinja2' as topbar %}
 
 {% block title %}DGT Depósito {{ dgt_deposito.clave }}{% endblock %}
@@ -7,6 +8,13 @@
 {% block topbar_actions %}
     {% call topbar.page_buttons('DGT Depósito ' + dgt_deposito.clave) %}
         {{ topbar.button_previous('DGT Depósitos', url_for('dgt_depositos.list_active')) }}
+        {% if current_user.can_edit('DGT DEPOSITOS') %}
+            {{ topbar.button_edit('Editar', url_for('dgt_depositos.edit', dgt_deposito_id=dgt_deposito.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('DGT DEPOSITOS') %}
+            {% if dgt_deposito.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('dgt_depositos.delete', dgt_deposito_id=dgt_deposito.id)) }}{% endif %}
+            {% if dgt_deposito.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('dgt_depositos.recover', dgt_deposito_id=dgt_deposito.id)) }}{% endif %}
+        {% endif %}
     {% endcall %}
 {% endblock %}
 
@@ -17,4 +25,11 @@
             {{ detail.label_value('Descripción', dgt_deposito.descripcion) }}
         </div>
     {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('DGT DEPOSITOS') %}
+        {% if dgt_deposito.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Depósito ' + dgt_deposito.clave + '?') }}{% endif %}
+        {% if dgt_deposito.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Depósito ' + dgt_deposito.clave + '?') }}{% endif %}
+    {% endif %}
 {% endblock %}

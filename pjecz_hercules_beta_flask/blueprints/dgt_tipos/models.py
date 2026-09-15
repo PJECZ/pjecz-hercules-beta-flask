@@ -22,7 +22,7 @@ class DgtTipo(database.Model, UniversalMixin):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Columnas
-    clave: Mapped[str] = mapped_column(String(16), unique=True)
+    clave: Mapped[str] = mapped_column(String(64), unique=True)
     descripcion: Mapped[str] = mapped_column(String(256))
 
     # Hijos

@@ -1,0 +1,30 @@
+"""
+DGT Rutas, formularios
+"""
+
+from flask_wtf import FlaskForm
+from wtforms import SelectField, StringField, SubmitField
+from wtforms.validators import DataRequired, Length
+
+from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
+
+
+class DgtRutaForm(FlaskForm):
+    """Formulario DgtRuta"""
+
+    dgt_deposito = SelectField("Depósito", coerce=str, validators=[DataRequired()])
+    dgt_tipo = SelectField("Tipo", coerce=str, validators=[DataRequired()])
+    clave = StringField("Clave", validators=[DataRequired(), Length(max=64)])
+    directorio = StringField("Directorio", validators=[DataRequired(), Length(max=512)])
+    guardar = SubmitField("Guardar")
+
+    def __init__(self, *args, **kwargs):
+        """Inicializar y cargar opciones en dgt_deposito y dgt_tipo"""
+        super().__init__(*args, **kwargs)
+        self.dgt_deposito.choices = [
+            (str(d.id), d.clave) for d in DgtDepositos.query.filter_by(estatus="A").order_by(DgtDepositos.clave).all()
+        ]
+        self.dgt_tipo.choices = [
+            (str(t.id), t.clave) for t in DgtTipo.query.filter_by(estatus="A").order_by(DgtTipo.clave).all()
+        ]
