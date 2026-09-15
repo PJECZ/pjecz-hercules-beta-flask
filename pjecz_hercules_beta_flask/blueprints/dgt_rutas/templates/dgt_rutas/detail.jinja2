@@ -34,6 +34,7 @@
             {% else %}
                 {{ detail.label_value('Tipo', dgt_tipo_texto) }}
             {% endif %}
+            {{ detail.label_value('Autoridad Clave', dgt_ruta.autoridad_clave) }}
             {{ detail.label_value('Directorio', dgt_ruta.directorio) }}
         </div>
     {% endcall %}

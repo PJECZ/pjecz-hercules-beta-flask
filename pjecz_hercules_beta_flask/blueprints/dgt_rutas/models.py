@@ -29,6 +29,7 @@ class DgtRuta(database.Model, UniversalMixin):
 
     # Columnas
     clave: Mapped[str] = mapped_column(String(64), unique=True)
+    autoridad_clave: Mapped[str] = mapped_column(String(16))
     directorio: Mapped[str] = mapped_column(String(512))
 
     # Hijos

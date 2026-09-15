@@ -49,6 +49,13 @@ def datatable_json():
                 consulta = consulta.filter(DgtRuta.clave.contains(clave))
         except ValueError:
             pass
+    if "autoridad_clave" in request.form:
+        try:
+            autoridad_clave = safe_clave(request.form["autoridad_clave"])
+            if autoridad_clave != "":
+                consulta = consulta.filter(DgtRuta.autoridad_clave.contains(autoridad_clave))
+        except ValueError:
+            pass
     # Luego filtrar por columnas de otras tablas
     if "dgt_deposito_clave" in request.form:
         try:
@@ -78,6 +85,7 @@ def datatable_json():
                 },
                 "dgt_deposito_clave": resultado.dgt_deposito.clave,
                 "dgt_tipo_clave": resultado.dgt_tipo.clave,
+                "autoridad_clave": resultado.autoridad_clave,
                 "directorio": resultado.directorio,
             }
         )
@@ -126,6 +134,7 @@ def new():
     form = DgtRutaForm()
     if form.validate_on_submit():
         clave = safe_clave(form.clave.data, max_len=64)
+        autoridad_clave = safe_clave(form.autoridad_clave.data)
         directorio = safe_string(form.directorio.data, max_len=512, save_enie=True, to_uppercase=False)
         # Validar que la clave no se repita
         if DgtRuta.query.filter_by(clave=clave).first():
@@ -137,6 +146,7 @@ def new():
             dgt_tipo_id=form.dgt_tipo.data,
             clave=clave,
             directorio=directorio,
+            autoridad_clave=autoridad_clave,
         )
         dgt_ruta.save()
         bitacora = Bitacora(
@@ -175,6 +185,7 @@ def edit(dgt_ruta_id):
             dgt_ruta.dgt_deposito_id = form.dgt_deposito.data
             dgt_ruta.dgt_tipo_id = form.dgt_tipo.data
             dgt_ruta.clave = clave
+            dgt_ruta.autoridad_clave = safe_clave(form.autoridad_clave.data)
             dgt_ruta.directorio = safe_string(form.directorio.data, max_len=512, save_enie=True, to_uppercase=False)
             dgt_ruta.save()
             bitacora = Bitacora(
@@ -189,6 +200,7 @@ def edit(dgt_ruta_id):
     form.dgt_deposito.data = str(dgt_ruta.dgt_deposito_id)  # Se manda dgt_deposito_id porque es un select
     form.dgt_tipo.data = str(dgt_ruta.dgt_tipo_id)  # Se manda dgt_tipo_id porque es un select
     form.clave.data = dgt_ruta.clave
+    form.autoridad_clave.data = dgt_ruta.autoridad_clave
     form.directorio.data = dgt_ruta.directorio
     return render_template("dgt_rutas/edit.jinja2", form=form, dgt_ruta=dgt_ruta)
 

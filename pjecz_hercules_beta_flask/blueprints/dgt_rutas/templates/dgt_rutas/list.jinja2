@@ -40,7 +40,13 @@
                             <label for="filtroDgtRutaDgtTipoClave">Tipo</label>
                         </div>
                     </div>
-                    <div class="col-6 text-end">
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroDgtRutaAutoridadClave" type="text" class="form-control" aria-label="Autoridad Clave" style="text-transform: uppercase;">
+                            <label for="filtroDgtRutaAutoridadClave">Autoridad Clave</label>
+                        </div>
+                    </div>
+                    <div class="col-4 text-end">
                         <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDgtRutas.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
                         <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDgtRutas.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
@@ -55,6 +61,7 @@
                     <th>Depósito</th>
                     <th>Tipo</th>
                     <th>Directorio</th>
+                    <th>Autoridad Clave</th>
                 </tr>
             </thead>
         </table>
@@ -74,6 +81,7 @@
             { data: 'detalle' },
             { data: 'dgt_deposito_clave' },
             { data: 'dgt_tipo_clave' },
+            { data: 'autoridad_clave' },
             { data: 'directorio' }
         ];
         configDTDgtRutas['columnDefs'] = [
@@ -90,6 +98,7 @@
         filtrosDgtRutas.agregarInput('filtroDgtRutaClave', 'clave');
         filtrosDgtRutas.agregarInput('filtroDgtRutaDgtDepositoClave', 'dgt_deposito_clave');
         filtrosDgtRutas.agregarInput('filtroDgtRutaDgtTipoClave', 'dgt_tipo_clave');
+        filtrosDgtRutas.agregarInput('filtroDgtRutaAutoridadClave', 'autoridad_clave');
         filtrosDgtRutas.precargar();
     </script>
 {% endblock %}
