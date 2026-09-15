@@ -1,0 +1,38 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}DGT Entrega {{ dgt_entrega.archivo_nombre }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('DGT Entrega ' + dgt_entrega.archivo_nombre) %}
+        {{ topbar.button_previous('DGT Entregas', url_for('dgt_entregas.list_active')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=dgt_entrega.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Archivo', dgt_entrega.archivo_nombre) }}
+            {% if current_user.can_view('AUTORIDADES') %}
+                {{ detail.label_value('Autoridad', dgt_entrega.autoridad.clave, url_for('autoridades.detail', autoridad_id=dgt_entrega.autoridad_id)) }}
+            {% else %}
+                {{ detail.label_value('Autoridad', dgt_entrega.autoridad.clave) }}
+            {% endif %}
+            {% if current_user.can_view('DGT RUTAS') %}
+                {{ detail.label_value('Ruta', dgt_entrega.dgt_ruta.clave, url_for('dgt_rutas.detail', dgt_ruta_id=dgt_entrega.dgt_ruta_id)) }}
+            {% else %}
+                {{ detail.label_value('Ruta', dgt_entrega.dgt_ruta.clave) }}
+            {% endif %}
+            {{ detail.label_value('Expediente', dgt_entrega.expediente) }}
+            {{ detail.label_value('Año del expediente', dgt_entrega.expediente_anio) }}
+            {{ detail.label_value('Número del expediente', dgt_entrega.expediente_num) }}
+            {{ detail.label_value('Descripción', dgt_entrega.descripcion) }}
+            {{ detail.label_value('URL del archivo', dgt_entrega.archivo_url) }}
+            {{ detail.label_value('MD5', dgt_entrega.archivo_md5) }}
+            {{ detail.label_value('CRC32C', dgt_entrega.archivo_crc32c) }}
+            {{ detail.label_value('Tamaño (bytes)', dgt_entrega.archivo_tamano) }}
+            {{ detail.label_value('Actualizado', dgt_entrega.archivo_actualizado.strftime('%Y-%m-%d %H:%M') if dgt_entrega.archivo_actualizado else '') }}
+        </div>
+    {% endcall %}
+{% endblock %}

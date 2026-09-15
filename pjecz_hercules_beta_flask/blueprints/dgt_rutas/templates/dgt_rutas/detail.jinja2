@@ -1,0 +1,48 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}DGT Ruta {{ dgt_ruta.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('DGT Ruta ' + dgt_ruta.clave) %}
+        {{ topbar.button_previous('DGT Rutas', url_for('dgt_rutas.list_active')) }}
+        {% if current_user.can_edit('DGT RUTAS') %}
+            {{ topbar.button_edit('Editar', url_for('dgt_rutas.edit', dgt_ruta_id=dgt_ruta.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('DGT RUTAS') %}
+            {% if dgt_ruta.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('dgt_rutas.delete', dgt_ruta_id=dgt_ruta.id)) }}{% endif %}
+            {% if dgt_ruta.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('dgt_rutas.recover', dgt_ruta_id=dgt_ruta.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=dgt_ruta.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', dgt_ruta.clave) }}
+            {% set dgt_deposito_texto = dgt_ruta.dgt_deposito.clave + ' (' + dgt_ruta.dgt_deposito.descripcion + ')' %}
+            {% if current_user.can_view('DGT DEPOSITOS') %}
+                {{ detail.label_value('Depósito', dgt_deposito_texto, url_for('dgt_depositos.detail', dgt_deposito_id=dgt_ruta.dgt_deposito_id)) }}
+            {% else %}
+                {{ detail.label_value('Depósito', dgt_deposito_texto) }}
+            {% endif %}
+            {% set dgt_tipo_texto = dgt_ruta.dgt_tipo.clave + ' (' + dgt_ruta.dgt_tipo.descripcion + ')' %}
+            {% if current_user.can_view('DGT TIPOS') %}
+                {{ detail.label_value('Tipo', dgt_tipo_texto, url_for('dgt_tipos.detail', dgt_tipo_id=dgt_ruta.dgt_tipo_id)) }}
+            {% else %}
+                {{ detail.label_value('Tipo', dgt_tipo_texto) }}
+            {% endif %}
+            {{ detail.label_value('Autoridad Clave', dgt_ruta.autoridad_clave) }}
+            {{ detail.label_value('Directorio', dgt_ruta.directorio) }}
+        </div>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('DGT RUTAS') %}
+        {% if dgt_ruta.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
+        {% if dgt_ruta.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}

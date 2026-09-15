@@ -103,6 +103,8 @@ class Autoridad(database.Model, UniversalMixin):
     autoridades_funcionarios: Mapped[List["AutoridadFuncionario"]] = relationship(back_populates="autoridad")
     # cid_areas_autoridades: Mapped[List["CIDAreaAutoridad"]] = relationship(back_populates="autoridad")
     # cid_procedimientos: Mapped[List["CIDProcedimiento"]] = relationship(back_populates="autoridad")
+    dgt_digitalizaciones: Mapped[List["DgtDigitalizacion"]] = relationship(back_populates="autoridad")
+    dgt_entregas: Mapped[List["DgtEntrega"]] = relationship(back_populates="autoridad")
     edictos: Mapped[List["Edicto"]] = relationship(back_populates="autoridad")
     estrados: Mapped[List["Estrado"]] = relationship(back_populates="autoridad")
     exh_exhortos: Mapped[List["ExhExhorto"]] = relationship(back_populates="autoridad")

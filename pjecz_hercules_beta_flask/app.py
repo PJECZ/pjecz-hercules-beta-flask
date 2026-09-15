@@ -20,6 +20,13 @@ from pjecz_hercules_beta_flask.blueprints.autoridades_funcionarios.views import 
 from pjecz_hercules_beta_flask.blueprints.bitacoras.views import bitacoras
 from pjecz_hercules_beta_flask.blueprints.bitacoras_apis.views import bitacoras_apis
 from pjecz_hercules_beta_flask.blueprints.centros_trabajos.views import centros_trabajos
+from pjecz_hercules_beta_flask.blueprints.dgt_depositos.views import dgt_depositos
+from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones.views import dgt_digitalizaciones
+from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones_bitacoras.views import dgt_digitalizaciones_bitacoras
+from pjecz_hercules_beta_flask.blueprints.dgt_entregas.views import dgt_entregas
+from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.views import dgt_entregas_bitacoras
+from pjecz_hercules_beta_flask.blueprints.dgt_rutas.views import dgt_rutas
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.views import dgt_tipos
 from pjecz_hercules_beta_flask.blueprints.distritos.views import distritos
 from pjecz_hercules_beta_flask.blueprints.domicilios.views import domicilios
 from pjecz_hercules_beta_flask.blueprints.edictos.views import edictos
@@ -81,6 +88,13 @@ app.register_blueprint(autoridades_funcionarios)
 app.register_blueprint(bitacoras)
 app.register_blueprint(bitacoras_apis)
 app.register_blueprint(centros_trabajos)
+app.register_blueprint(dgt_depositos)
+app.register_blueprint(dgt_digitalizaciones)
+app.register_blueprint(dgt_digitalizaciones_bitacoras)
+app.register_blueprint(dgt_entregas)
+app.register_blueprint(dgt_entregas_bitacoras)
+app.register_blueprint(dgt_rutas)
+app.register_blueprint(dgt_tipos)
 app.register_blueprint(distritos)
 app.register_blueprint(domicilios)
 app.register_blueprint(edictos)

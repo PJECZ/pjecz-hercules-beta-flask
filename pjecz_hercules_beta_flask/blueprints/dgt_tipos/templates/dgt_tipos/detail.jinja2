@@ -1,0 +1,35 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}DGT Tipo {{ dgt_tipo.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('DGT Tipo ' + dgt_tipo.clave) %}
+        {{ topbar.button_previous('DGT Tipos', url_for('dgt_tipos.list_active')) }}
+        {% if current_user.can_edit('DGT TIPOS') %}
+            {{ topbar.button_edit('Editar', url_for('dgt_tipos.edit', dgt_tipo_id=dgt_tipo.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('DGT TIPOS') %}
+            {% if dgt_tipo.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('dgt_tipos.delete', dgt_tipo_id=dgt_tipo.id)) }}{% endif %}
+            {% if dgt_tipo.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('dgt_tipos.recover', dgt_tipo_id=dgt_tipo.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=dgt_tipo.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', dgt_tipo.clave) }}
+            {{ detail.label_value('Descripción', dgt_tipo.descripcion) }}
+        </div>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('DGT TIPOS') %}
+        {% if dgt_tipo.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Tipo ' + dgt_tipo.clave + '?') }}{% endif %}
+        {% if dgt_tipo.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Tipo ' + dgt_tipo.clave + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}
