@@ -1,0 +1,20 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}DGT Depósito {{ dgt_deposito.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('DGT Depósito ' + dgt_deposito.clave) %}
+        {{ topbar.button_previous('DGT Depósitos', url_for('dgt_depositos.list_active')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=dgt_deposito.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', dgt_deposito.clave) }}
+            {{ detail.label_value('Descripción', dgt_deposito.descripcion) }}
+        </div>
+    {% endcall %}
+{% endblock %}

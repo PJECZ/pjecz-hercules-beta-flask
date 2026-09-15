@@ -1,0 +1,30 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}DGT Ruta {{ dgt_ruta.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('DGT Ruta ' + dgt_ruta.clave) %}
+        {{ topbar.button_previous('DGT Rutas', url_for('dgt_rutas.list_active')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=dgt_ruta.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', dgt_ruta.clave) }}
+            {% if current_user.can_view('DGT DEPOSITOS') %}
+                {{ detail.label_value('Depósito', dgt_ruta.dgt_deposito.clave, url_for('dgt_depositos.detail', dgt_deposito_id=dgt_ruta.dgt_deposito_id)) }}
+            {% else %}
+                {{ detail.label_value('Depósito', dgt_ruta.dgt_deposito.clave) }}
+            {% endif %}
+            {% if current_user.can_view('DGT TIPOS') %}
+                {{ detail.label_value('Tipo', dgt_ruta.dgt_tipo.clave, url_for('dgt_tipos.detail', dgt_tipo_id=dgt_ruta.dgt_tipo_id)) }}
+            {% else %}
+                {{ detail.label_value('Tipo', dgt_ruta.dgt_tipo.clave) }}
+            {% endif %}
+            {{ detail.label_value('Directorio', dgt_ruta.directorio) }}
+        </div>
+    {% endcall %}
+{% endblock %}

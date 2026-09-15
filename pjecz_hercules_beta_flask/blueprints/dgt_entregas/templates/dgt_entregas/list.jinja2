@@ -1,0 +1,94 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/list.jinja2' as list %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_admin('DGT ENTREGAS') %}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_entregas.list_inactive')) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_entregas.list_active')) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call list.card() %}
+        <!-- Filtros DGT Entregas -->
+        <div class="row">
+            <div class="col">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosDgtEntregas.buscar(); return false;">
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroDgtEntregaAutoridadClave" type="text" class="form-control" aria-label="Autoridad" style="text-transform: uppercase;">
+                            <label for="filtroDgtEntregaAutoridadClave">Autoridad</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroDgtEntregaExpediente" type="text" class="form-control" aria-label="Expediente" style="text-transform: uppercase;">
+                            <label for="filtroDgtEntregaExpediente">Expediente</label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="form-floating">
+                            <input id="filtroDgtEntregaDescripcion" type="text" class="form-control" aria-label="Descripción" style="text-transform: uppercase;">
+                            <label for="filtroDgtEntregaDescripcion">Descripción</label>
+                        </div>
+                    </div>
+                    <div class="col-4 text-end">
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDgtEntregas.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDgtEntregas.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Datatable DGT Entregas -->
+        <table id="dgt_entregas_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Archivo</th>
+                    <th>Autoridad</th>
+                    <th>Expediente</th>
+                    <th>Descripción</th>
+                    <th>Actualizado</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script src="/static/js/datatables-constructor.js"></script>
+    <script src="/static/js/datatables-filtros.js"></script>
+    <script>
+        // DataTable DGT Entregas
+        const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+        let configDTDgtEntregas = constructorDataTable.config();
+        configDTDgtEntregas['ajax']['url'] = "{{ url_for('dgt_entregas.datatable_json') }}";
+        configDTDgtEntregas['ajax']['data'] = {{ filtros }};
+        configDTDgtEntregas['columns'] = [
+            { data: 'detalle' },
+            { data: 'autoridad_clave' },
+            { data: 'expediente' },
+            { data: 'descripcion' },
+            { data: 'archivo_actualizado' }
+        ];
+        configDTDgtEntregas['columnDefs'] = [
+            {
+                targets: 0, // detalle
+                data: null,
+                render: function(data, type, row, meta) {
+                    return '<a href="' + data.url + '">' + data.archivo_nombre + '</a>';
+                }
+            }
+        ];
+        // Filtros DGT Entregas
+        const filtrosDgtEntregas = new FiltrosDataTable('#dgt_entregas_datatable', configDTDgtEntregas);
+        filtrosDgtEntregas.agregarInput('filtroDgtEntregaAutoridadClave', 'autoridad_clave');
+        filtrosDgtEntregas.agregarInput('filtroDgtEntregaExpediente', 'expediente');
+        filtrosDgtEntregas.agregarInput('filtroDgtEntregaDescripcion', 'descripcion');
+        filtrosDgtEntregas.precargar();
+    </script>
+{% endblock %}
