@@ -44,7 +44,7 @@ def datatable_json():
         consulta = consulta.filter_by(estatus="A")
     if "clave" in request.form:
         try:
-            clave = safe_clave(request.form["clave"], max_length=64)
+            clave = safe_clave(request.form["clave"], max_len=64)
             if clave != "":
                 consulta = consulta.filter(DgtRuta.clave.contains(clave))
         except ValueError:
