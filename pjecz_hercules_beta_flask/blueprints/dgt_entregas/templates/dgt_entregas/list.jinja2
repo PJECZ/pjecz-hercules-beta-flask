@@ -6,6 +6,7 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {{ topbar.button_dashboard('Tablero', url_for('dgt_entregas.dashboard')) }}
         {% if current_user.can_admin('DGT ENTREGAS') %}
             {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_entregas.list_inactive')) }}{% endif %}
             {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_entregas.list_active')) }}{% endif %}
