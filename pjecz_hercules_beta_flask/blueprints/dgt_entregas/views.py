@@ -55,7 +55,7 @@ def datatable_json():
         except ValueError:
             pass
     # Ordenar y paginar
-    registros = consulta.order_by(DgtEntrega.archivo_actualizado).offset(start).limit(rows_per_page).all()
+    registros = consulta.order_by(DgtEntrega.archivo_actualizado.desc()).offset(start).limit(rows_per_page).all()
     total = consulta.count()
     # Elaborar datos para DataTable
     data = []
@@ -69,6 +69,8 @@ def datatable_json():
                 "autoridad_clave": resultado.autoridad.clave,
                 "expediente": resultado.expediente,
                 "descripcion": resultado.descripcion,
+                "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
+                "dgt_deposito_clave": resultado.dgt_ruta.dgt_deposito.clave,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if resultado.archivo_actualizado else "",
             }
         )
