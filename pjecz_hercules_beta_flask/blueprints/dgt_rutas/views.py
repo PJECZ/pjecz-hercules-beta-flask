@@ -57,6 +57,10 @@ def datatable_json():
         except ValueError:
             pass
     # Luego filtrar por columnas de otras tablas
+    if "dgt_deposito_id" in request.form:
+        consulta = consulta.filter(DgtRuta.dgt_deposito_id == request.form["dgt_deposito_id"])
+    if "dgt_tipo_id" in request.form:
+        consulta = consulta.filter(DgtRuta.dgt_tipo_id == request.form["dgt_tipo_id"])
     if "dgt_deposito_clave" in request.form:
         try:
             dgt_deposito_clave = safe_clave(request.form["dgt_deposito_clave"], max_len=64)
