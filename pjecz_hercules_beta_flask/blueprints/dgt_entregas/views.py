@@ -73,7 +73,6 @@ def datatable_json():
                 "expediente": resultado.expediente,
                 "descripcion": resultado.descripcion,
                 "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
-                "dgt_deposito_clave": resultado.dgt_ruta.dgt_deposito.clave,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M"),
             }
         )
