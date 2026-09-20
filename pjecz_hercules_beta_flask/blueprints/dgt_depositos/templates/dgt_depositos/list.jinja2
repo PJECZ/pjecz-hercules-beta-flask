@@ -47,6 +47,7 @@
                 <tr>
                     <th>Clave</th>
                     <th>Descripción</th>
+                    <th>Propósito</th>
                 </tr>
             </thead>
         </table>
@@ -64,7 +65,8 @@
         configDTDgtDepositos['ajax']['data'] = {{ filtros }};
         configDTDgtDepositos['columns'] = [
             { data: 'detalle' },
-            { data: 'descripcion' }
+            { data: 'descripcion' },
+            { data: 'proposito' }
         ];
         configDTDgtDepositos['columnDefs'] = [
             {

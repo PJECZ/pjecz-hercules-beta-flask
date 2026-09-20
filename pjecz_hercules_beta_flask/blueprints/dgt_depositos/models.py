@@ -16,7 +16,7 @@ class DgtDepositos(database.Model, UniversalMixin):
     """DgtDepositos"""
 
     PROPOSITOS = {
-        "ND": "ND",
+        "ND": "No Definido",
         "ENTREGAS": "Entregas",
         "DIGITALIZACIONES": "Digitalizaciones",
         "RESPALDOS": "Respaldos",

@@ -64,6 +64,7 @@ def datatable_json():
                     "url": url_for("dgt_depositos.detail", dgt_deposito_id=resultado.id),
                 },
                 "descripcion": resultado.descripcion,
+                "proposito": resultado.proposito,
             }
         )
     # Entregar JSON
@@ -120,6 +121,7 @@ def new():
         dgt_deposito = DgtDepositos(
             clave=clave,
             descripcion=descripcion,
+            proposito=form.proposito.data,
         )
         dgt_deposito.save()
         bitacora = Bitacora(
@@ -157,6 +159,7 @@ def edit(dgt_deposito_id):
         if es_valido:
             dgt_deposito.clave = clave
             dgt_deposito.descripcion = safe_string(form.descripcion.data, save_enie=True)
+            dgt_deposito.proposito = form.proposito.data
             dgt_deposito.save()
             bitacora = Bitacora(
                 modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -169,6 +172,7 @@ def edit(dgt_deposito_id):
             return redirect(bitacora.url)
     form.clave.data = dgt_deposito.clave
     form.descripcion.data = dgt_deposito.descripcion
+    form.proposito.data = dgt_deposito.proposito
     return render_template("dgt_depositos/edit.jinja2", form=form, dgt_deposito=dgt_deposito)
 
 
