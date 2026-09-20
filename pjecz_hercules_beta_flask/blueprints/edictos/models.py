@@ -36,7 +36,7 @@ class Edicto(database.Model, UniversalMixin):
     es_declaracion_de_ausencia: Mapped[bool] = mapped_column(default=False)
 
     # Hijos
-    # edictos_acuses: Mapped[List["EdictoAcuse"]] = relationship(back_populates="edicto")
+    # edictos_acuses: Mapped[list["EdictoAcuse"]] = relationship(back_populates="edicto")
 
     def __repr__(self):
         """Representación"""

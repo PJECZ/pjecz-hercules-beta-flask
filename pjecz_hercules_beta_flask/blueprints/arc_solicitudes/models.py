@@ -3,7 +3,7 @@ Archivos Solicitudes, modelos
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -57,7 +57,7 @@ class ArcSolicitud(database.Model, UniversalMixin):
     observaciones_razon: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Hijos
-    arc_solicitudes_bitacoras: Mapped[List["ArcSolicitudBitacora"]] = relationship(back_populates="arc_solicitud")
+    arc_solicitudes_bitacoras: Mapped[list["ArcSolicitudBitacora"]] = relationship(back_populates="arc_solicitud")
 
     def __repr__(self):
         """Representación"""

@@ -3,7 +3,7 @@ Exhortos, modelos
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -179,31 +179,31 @@ class ExhExhorto(database.Model, UniversalMixin):
 
     # Hijo: Archivos
     # Colección de los datos referentes a los archivos que se van a recibir el Poder Judicial exhortado en el envío del Exhorto.
-    exh_exhortos_archivos: Mapped[List["ExhExhortoArchivo"]] = relationship("ExhExhortoArchivo", back_populates="exh_exhorto")
+    exh_exhortos_archivos: Mapped[list["ExhExhortoArchivo"]] = relationship("ExhExhortoArchivo", back_populates="exh_exhorto")
 
     # Hijo: Partes
     # Contiene la definición de las partes del Expediente/Juicio/Asunto en el Juzgado/Área de origen
-    exh_exhortos_partes: Mapped[List["ExhExhortoParte"]] = relationship("ExhExhortoParte", back_populates="exh_exhorto")
+    exh_exhortos_partes: Mapped[list["ExhExhortoParte"]] = relationship("ExhExhortoParte", back_populates="exh_exhorto")
 
     # Hijo: Promoventes
     # Contiene la definición del promovente o los promoventes del exhorto, que comúnmente será el representante legal o abogado.
     # Donde se debe especificar el correo electrónico para darle acceso a medios electrónicos.
-    # exh_exhortos_promoventes: Mapped[List["ExhExhortoPromovente"]] = relationship(
+    # exh_exhortos_promoventes: Mapped[list["ExhExhortoPromovente"]] = relationship(
     #     "ExhExhortoPromovente", back_populates="exh_exhorto"
     # )
 
     # Hijo: Actualizaciones
-    # exh_exhortos_actualizaciones: Mapped[List["ExhExhortoActualizacion"]] = relationship(
+    # exh_exhortos_actualizaciones: Mapped[list["ExhExhortoActualizacion"]] = relationship(
     #     "ExhExhortoActualizacion", back_populates="exh_exhorto"
     # )
 
     # Hijo: Promociones
-    # exh_exhortos_promociones: Mapped[List["ExhExhortoPromocion"]] = relationship(
+    # exh_exhortos_promociones: Mapped[list["ExhExhortoPromocion"]] = relationship(
     #     "ExhExhortoPromocion", back_populates="exh_exhorto"
     # )
 
     # Hijo: Respuestas
-    # exh_exhortos_respuestas: Mapped[List["ExhExhortoRespuesta"]] = relationship(
+    # exh_exhortos_respuestas: Mapped[list["ExhExhortoRespuesta"]] = relationship(
     #     "ExhExhortoRespuesta", back_populates="exh_exhorto"
     # )
 

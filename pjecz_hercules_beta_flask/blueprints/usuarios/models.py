@@ -3,7 +3,7 @@ Usuarios, modelos
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from flask import current_app
 from flask_login import UserMixin
@@ -66,25 +66,25 @@ class Usuario(database.Model, UserMixin, UniversalMixin):
     contrasena: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Hijos
-    arc_documentos_bitacoras: Mapped[List["ArcDocumentoBitacora"]] = relationship(back_populates="usuario")
-    arc_remesas: Mapped[List["ArcRemesa"]] = relationship(back_populates="usuario_asignado")
-    arc_solicitudes_asignado: Mapped[List["ArcSolicitud"]] = relationship(back_populates="usuario_asignado")
-    arc_solicitudes_bitacoras: Mapped[List["ArcSolicitudBitacora"]] = relationship(back_populates="usuario")
-    arc_remesas_bitacoras: Mapped[List["ArcRemesaBitacora"]] = relationship(back_populates="usuario")
-    bitacoras: Mapped[List["Bitacora"]] = relationship(back_populates="usuario")
-    bitacoras_apis: Mapped[List["BitacoraAPI"]] = relationship(back_populates="usuario")
-    # cid_procedimientos: Mapped[List["CIDProcedimiento"]] = relationship(back_populates="usuario")
-    entradas_salidas: Mapped[List["EntradaSalida"]] = relationship(back_populates="usuario")
-    # fin_vales: Mapped[List["FinVale"]] = relationship(back_populates="usuario")
-    # inv_custodias: Mapped[List["InvCustodia"]] = relationship(back_populates="usuario")
-    ofi_documentos: Mapped[List["OfiDocumento"]] = relationship(back_populates="usuario")
-    ofi_documentos_destinatarios: Mapped[List["OfiDocumentoDestinatario"]] = relationship(back_populates="usuario")
-    ofi_plantillas: Mapped[List["OfiPlantilla"]] = relationship(back_populates="usuario")
-    # req_requisiciones: Mapped[List["ReqRequisicion"]] = relationship(back_populates="usuario")
-    tareas: Mapped[List["Tarea"]] = relationship(back_populates="usuario")
-    # usuarios_nominas: Mapped[List["UsuarioNomina"]] = relationship(back_populates="usuario")
-    usuarios_roles: Mapped[List["UsuarioRol"]] = relationship(back_populates="usuario")
-    soportes_tickets: Mapped[List["SoporteTicket"]] = relationship(back_populates="usuario")
+    arc_documentos_bitacoras: Mapped[list["ArcDocumentoBitacora"]] = relationship(back_populates="usuario")
+    arc_remesas: Mapped[list["ArcRemesa"]] = relationship(back_populates="usuario_asignado")
+    arc_solicitudes_asignado: Mapped[list["ArcSolicitud"]] = relationship(back_populates="usuario_asignado")
+    arc_solicitudes_bitacoras: Mapped[list["ArcSolicitudBitacora"]] = relationship(back_populates="usuario")
+    arc_remesas_bitacoras: Mapped[list["ArcRemesaBitacora"]] = relationship(back_populates="usuario")
+    bitacoras: Mapped[list["Bitacora"]] = relationship(back_populates="usuario")
+    bitacoras_apis: Mapped[list["BitacoraAPI"]] = relationship(back_populates="usuario")
+    # cid_procedimientos: Mapped[list["CIDProcedimiento"]] = relationship(back_populates="usuario")
+    entradas_salidas: Mapped[list["EntradaSalida"]] = relationship(back_populates="usuario")
+    # fin_vales: Mapped[list["FinVale"]] = relationship(back_populates="usuario")
+    # inv_custodias: Mapped[list["InvCustodia"]] = relationship(back_populates="usuario")
+    ofi_documentos: Mapped[list["OfiDocumento"]] = relationship(back_populates="usuario")
+    ofi_documentos_destinatarios: Mapped[list["OfiDocumentoDestinatario"]] = relationship(back_populates="usuario")
+    ofi_plantillas: Mapped[list["OfiPlantilla"]] = relationship(back_populates="usuario")
+    # req_requisiciones: Mapped[list["ReqRequisicion"]] = relationship(back_populates="usuario")
+    tareas: Mapped[list["Tarea"]] = relationship(back_populates="usuario")
+    # usuarios_nominas: Mapped[list["UsuarioNomina"]] = relationship(back_populates="usuario")
+    usuarios_roles: Mapped[list["UsuarioRol"]] = relationship(back_populates="usuario")
+    soportes_tickets: Mapped[list["SoporteTicket"]] = relationship(back_populates="usuario")
 
     # Propiedades
     modulos_menu_principal_consultados = []

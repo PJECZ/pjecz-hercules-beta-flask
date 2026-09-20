@@ -2,8 +2,6 @@
 Materias Tipos de Juicios
 """
 
-from typing import List
-
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,7 +26,7 @@ class MateriaTipoJuicio(database.Model, UniversalMixin):
     descripcion: Mapped[str] = mapped_column(String(256))
 
     # Hijos
-    sentencias: Mapped[List["Sentencia"]] = relationship("Sentencia", back_populates="materia_tipo_juicio")
+    sentencias: Mapped[list["Sentencia"]] = relationship("Sentencia", back_populates="materia_tipo_juicio")
 
     def __repr__(self):
         """Representación"""

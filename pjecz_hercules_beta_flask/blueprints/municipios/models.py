@@ -2,8 +2,6 @@
 Municipios, modelos
 """
 
-from typing import List
-
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,8 +27,8 @@ class Municipio(database.Model, UniversalMixin):
     nombre: Mapped[str] = mapped_column(String(256))
 
     # Hijos
-    autoridades: Mapped[List["Autoridad"]] = relationship(back_populates="municipio")
-    exh_exhortos_origenes: Mapped[List["ExhExhorto"]] = relationship(back_populates="municipio_origen")
+    autoridades: Mapped[list["Autoridad"]] = relationship(back_populates="municipio")
+    exh_exhortos_origenes: Mapped[list["ExhExhorto"]] = relationship(back_populates="municipio_origen")
 
     def __repr__(self):
         """Representación"""

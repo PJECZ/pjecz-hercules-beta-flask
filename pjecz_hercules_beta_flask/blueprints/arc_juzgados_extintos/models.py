@@ -2,8 +2,6 @@
 Archivos Juzgados Extintos, modelos
 """
 
-from typing import List
-
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,7 +28,7 @@ class ArcJuzgadoExtinto(database.Model, UniversalMixin):
     descripcion: Mapped[str] = mapped_column(String(256))
 
     # Hijos
-    arc_documentos: Mapped[List["ArcDocumento"]] = relationship(back_populates="arc_juzgado_origen")
+    arc_documentos: Mapped[list["ArcDocumento"]] = relationship(back_populates="arc_juzgado_origen")
 
     @property
     def nombre(self):

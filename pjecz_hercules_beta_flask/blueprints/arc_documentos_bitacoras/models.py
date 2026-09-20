@@ -39,9 +39,7 @@ class ArcDocumentoBitacora(database.Model, UniversalMixin):
 
     # Columnas
     fojas: Mapped[int]
-    accion: Mapped[str] = mapped_column(
-        Enum(*ACCIONES, name="arc_documentos_bitacoras_acciones", native_enum=False), index=True
-    )
+    accion: Mapped[str] = mapped_column(Enum(*ACCIONES, name="arc_documentos_bitacoras_acciones", native_enum=False), index=True)
     observaciones: Mapped[str] = mapped_column(String(256))
 
     def __repr__(self):

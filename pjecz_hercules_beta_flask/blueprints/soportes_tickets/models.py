@@ -3,7 +3,7 @@ Soportes Tickets, modelos
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -64,7 +64,7 @@ class SoporteTicket(database.Model, UniversalMixin):
     )
 
     # Hijos
-    # soportes_adjuntos: Mapped[List["SoporteAdjunto"]] = relationship(back_populates="soporte_ticket")
+    # soportes_adjuntos: Mapped[list["SoporteAdjunto"]] = relationship(back_populates="soporte_ticket")
 
     def __repr__(self):
         """Representación"""
