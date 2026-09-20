@@ -2,8 +2,6 @@
 Domicilios, modelos
 """
 
-from typing import List
-
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,8 +34,8 @@ class Domicilio(database.Model, UniversalMixin):
     completo: Mapped[str] = mapped_column(String(1024))
 
     # Hijos
-    centros_trabajos: Mapped[List["CentroTrabajo"]] = relationship(back_populates="domicilio")
-    oficinas: Mapped[List["Oficina"]] = relationship(back_populates="domicilio")
+    centros_trabajos: Mapped[list["CentroTrabajo"]] = relationship(back_populates="domicilio")
+    oficinas: Mapped[list["Oficina"]] = relationship(back_populates="domicilio")
 
     def elaborar_completo(self):
         """Elaborar completo"""

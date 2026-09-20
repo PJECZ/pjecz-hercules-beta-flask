@@ -3,7 +3,6 @@ Archivos Remesas, modelos
 """
 
 from datetime import datetime
-from typing import List
 
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -63,8 +62,8 @@ class ArcRemesa(database.Model, UniversalMixin):
     estado: Mapped[str] = mapped_column(Enum(*ESTADOS, name="arc_remesas_estados", native_enum=False), index=True)
 
     # Hijos
-    arc_remesas_documentos: Mapped[List["ArcRemesaDocumento"]] = relationship(back_populates="arc_remesa")
-    arc_remesas_bitacoras: Mapped[List["ArcRemesaBitacora"]] = relationship(back_populates="arc_remesa")
+    arc_remesas_documentos: Mapped[list["ArcRemesaDocumento"]] = relationship(back_populates="arc_remesa")
+    arc_remesas_bitacoras: Mapped[list["ArcRemesaBitacora"]] = relationship(back_populates="arc_remesa")
 
     def __repr__(self):
         """Representación"""

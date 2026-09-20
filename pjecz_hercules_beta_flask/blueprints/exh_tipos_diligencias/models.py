@@ -2,13 +2,8 @@
 Exhortos Tipos Diligencias, modelos
 """
 
-from datetime import datetime
-from typing import List, Optional
-
-from sqlalchemy import DateTime, Enum, ForeignKey, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql.functions import now
 
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
@@ -28,7 +23,7 @@ class ExhTipoDiligencia(database.Model, UniversalMixin):
     descripcion: Mapped[str] = mapped_column(String(256))
 
     # Hijo
-    exh_exhortos: Mapped[List["ExhExhorto"]] = relationship(back_populates="exh_tipo_diligencia")
+    exh_exhortos: Mapped[list["ExhExhorto"]] = relationship(back_populates="exh_tipo_diligencia")
 
     def __repr__(self):
         """Representación"""

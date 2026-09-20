@@ -2,7 +2,7 @@
 Archivos Documentos, modelos
 """
 
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -61,9 +61,9 @@ class ArcDocumento(database.Model, UniversalMixin):
     notas: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Hijos
-    arc_documentos_bitacoras: Mapped[List["ArcDocumentoBitacora"]] = relationship(back_populates="arc_documento")
-    arc_solicitudes: Mapped[List["ArcSolicitud"]] = relationship(back_populates="arc_documento")
-    arc_remesas_documentos: Mapped[List["ArcRemesaDocumento"]] = relationship(back_populates="arc_documento")
+    arc_documentos_bitacoras: Mapped[list["ArcDocumentoBitacora"]] = relationship(back_populates="arc_documento")
+    arc_solicitudes: Mapped[list["ArcSolicitud"]] = relationship(back_populates="arc_documento")
+    arc_remesas_documentos: Mapped[list["ArcRemesaDocumento"]] = relationship(back_populates="arc_documento")
 
     def __repr__(self):
         """Representación"""

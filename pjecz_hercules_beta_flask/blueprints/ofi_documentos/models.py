@@ -5,7 +5,7 @@ Ofi Documentos, modelos
 import hashlib
 import uuid
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -77,8 +77,8 @@ class OfiDocumento(database.Model, UniversalMixin):
     archivo_pdf_url: Mapped[Optional[str]] = mapped_column(String(512))
 
     # Hijos
-    ofi_documentos_adjuntos: Mapped[List["OfiDocumentoAdjunto"]] = relationship(back_populates="ofi_documento")
-    ofi_documentos_destinatarios: Mapped[List["OfiDocumentoDestinatario"]] = relationship(back_populates="ofi_documento")
+    ofi_documentos_adjuntos: Mapped[list["OfiDocumentoAdjunto"]] = relationship(back_populates="ofi_documento")
+    ofi_documentos_destinatarios: Mapped[list["OfiDocumentoDestinatario"]] = relationship(back_populates="ofi_documento")
 
     def elaborar_hash(self):
         """Generate a hash representing the current sample state"""

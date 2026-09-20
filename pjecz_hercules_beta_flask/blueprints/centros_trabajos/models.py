@@ -2,8 +2,6 @@
 Centros Trabajos, modelos
 """
 
-from typing import List
-
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,7 +30,7 @@ class CentroTrabajo(database.Model, UniversalMixin):
     telefono: Mapped[str] = mapped_column(String(48))
 
     # Hijos
-    funcionarios: Mapped[List["Funcionario"]] = relationship("Funcionario", back_populates="centro_trabajo")
+    funcionarios: Mapped[list["Funcionario"]] = relationship("Funcionario", back_populates="centro_trabajo")
 
     def __repr__(self):
         """Representación"""

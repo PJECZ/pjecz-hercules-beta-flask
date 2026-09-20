@@ -2,8 +2,6 @@
 Materias, modelos
 """
 
-from typing import List
-
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,8 +26,8 @@ class Materia(database.Model, UniversalMixin):
     en_exh_exhortos: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Hijos
-    autoridades: Mapped[List["Autoridad"]] = relationship(back_populates="materia")
-    materias_tipos_juicios: Mapped[List["MateriaTipoJuicio"]] = relationship(back_populates="materia")
+    autoridades: Mapped[list["Autoridad"]] = relationship(back_populates="materia")
+    materias_tipos_juicios: Mapped[list["MateriaTipoJuicio"]] = relationship(back_populates="materia")
 
     def __repr__(self):
         """Representación"""

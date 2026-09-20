@@ -2,7 +2,7 @@
 Soportes Categorias, modelos
 """
 
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,12 +33,10 @@ class SoporteCategoria(database.Model, UniversalMixin):
     # Columnas
     nombre: Mapped[str] = mapped_column(String(256), unique=True)
     instrucciones: Mapped[str] = mapped_column(Text)
-    departamento: Mapped[Optional[str]] = mapped_column(
-        Enum(*DEPARTAMENTOS, name="soportes_categorias_departamentos", native_enum=False), index=True
-    )
+    departamento: Mapped[Optional[str]] = mapped_column(Enum(*DEPARTAMENTOS, name="soportes_categorias_departamentos", native_enum=False), index=True)
 
     # Hijos
-    soportes_tickets: Mapped[List["SoporteTicket"]] = relationship(back_populates="soporte_categoria")
+    soportes_tickets: Mapped[list["SoporteTicket"]] = relationship(back_populates="soporte_categoria")
 
     def __repr__(self):
         """Representación"""

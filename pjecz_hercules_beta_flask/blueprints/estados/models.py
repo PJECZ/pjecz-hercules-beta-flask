@@ -2,8 +2,6 @@
 Estados, modelos
 """
 
-from typing import List
-
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,8 +23,8 @@ class Estado(database.Model, UniversalMixin):
     nombre: Mapped[str] = mapped_column(String(256))
 
     # Hijos
-    # exh_externos: Mapped[List["ExhExterno"]] = relationship(back_populates="estado")
-    municipios: Mapped[List["Municipio"]] = relationship(back_populates="estado")
+    # exh_externos: Mapped[list["ExhExterno"]] = relationship(back_populates="estado")
+    municipios: Mapped[list["Municipio"]] = relationship(back_populates="estado")
 
     def __repr__(self):
         """Representación"""

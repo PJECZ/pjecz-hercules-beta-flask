@@ -3,7 +3,6 @@ Funcionarios, modelos
 """
 
 from datetime import date
-from typing import List
 
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -44,9 +43,9 @@ class Funcionario(database.Model, UniversalMixin):
     fotografia_url: Mapped[str] = mapped_column(String(512), default="")
 
     # Hijos
-    autoridades_funcionarios: Mapped[List["AutoridadFuncionario"]] = relationship(back_populates="funcionario")
-    funcionarios_oficinas: Mapped[List["FuncionarioOficina"]] = relationship(back_populates="funcionario")
-    soportes_tickets: Mapped[List["SoporteTicket"]] = relationship(back_populates="funcionario")
+    autoridades_funcionarios: Mapped[list["AutoridadFuncionario"]] = relationship(back_populates="funcionario")
+    funcionarios_oficinas: Mapped[list["FuncionarioOficina"]] = relationship(back_populates="funcionario")
+    soportes_tickets: Mapped[list["SoporteTicket"]] = relationship(back_populates="funcionario")
 
     @property
     def nombre(self):
