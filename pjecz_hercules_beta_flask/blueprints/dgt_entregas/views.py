@@ -49,6 +49,8 @@ def datatable_json():
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
             consulta = consulta.filter(DgtEntrega.descripcion.contains(descripcion))
+    if "dgt_ruta_id" in request.form:
+        consulta = consulta.filter(DgtEntrega.dgt_ruta_id == request.form["dgt_ruta_id"])
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
