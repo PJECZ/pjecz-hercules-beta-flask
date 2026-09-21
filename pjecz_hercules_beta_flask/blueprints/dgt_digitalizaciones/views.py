@@ -6,11 +6,14 @@ import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
+from sqlalchemy import func
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones.models import DgtDigitalizacion
+from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
+from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_string, safe_uuid
 
@@ -46,6 +49,8 @@ def datatable_json():
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
             consulta = consulta.filter(DgtDigitalizacion.descripcion.contains(descripcion))
+    if "dgt_ruta_id" in request.form:
+        consulta = consulta.filter(DgtDigitalizacion.dgt_ruta_id == request.form["dgt_ruta_id"])
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
@@ -108,3 +113,58 @@ def detail(dgt_digitalizacion_id):
         return redirect(url_for("dgt_digitalizaciones.list_active"))
     dgt_digitalizacion = DgtDigitalizacion.query.get_or_404(dgt_digitalizacion_id)
     return render_template("dgt_digitalizaciones/detail.jinja2", dgt_digitalizacion=dgt_digitalizacion)
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_totales_por_materia_por_anio")
+def get_totales_por_materia_por_anio_json():
+    """Obtener los totales de DGT Entregas por materia y por año en JSON"""
+
+    # Consultar los totales (copiados, enviados) por materia por año
+    consulta = (
+        database.session.query(
+            Materia.nombre.label("materia"),
+            DgtDigitalizacion.expediente_anio.label("anio"),
+            func.count(DgtDigitalizacion.id).label("total"),
+        )
+        .select_from(
+            DgtDigitalizacion,
+        )
+        .join(
+            Autoridad,
+        )
+        .join(
+            Materia,
+        )
+        .where(
+            DgtDigitalizacion.estatus == "A",
+        )
+        .group_by(
+            Materia.nombre,
+            DgtDigitalizacion.expediente_anio,
+        )
+        .order_by(
+            DgtDigitalizacion.expediente_anio,
+            Materia.nombre,
+        )
+        .all()
+    )
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por materia",
+        "totales": [
+            {
+                "materia_nombre": row.materia,
+                "anio": row.anio,
+                "total": row.total,
+            }
+            for row in consulta
+        ],
+    }
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/dashboard")
+def dashboard():
+    """Tablero de DGT Entregas"""
+    return render_template("dgt_digitalizaciones/dashboard.jinja2")
