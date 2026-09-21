@@ -28,13 +28,13 @@
             {% else %}
                 {{ detail.label_value('Depósito', dgt_deposito_texto) }}
             {% endif %}
+            {{ detail.label_value('Autoridad Clave', dgt_ruta.autoridad_clave) }}
             {% set dgt_tipo_texto = dgt_ruta.dgt_tipo.clave + ' (' + dgt_ruta.dgt_tipo.descripcion + ')' %}
             {% if current_user.can_view('DGT TIPOS') %}
                 {{ detail.label_value('Tipo', dgt_tipo_texto, url_for('dgt_tipos.detail', dgt_tipo_id=dgt_ruta.dgt_tipo_id)) }}
             {% else %}
                 {{ detail.label_value('Tipo', dgt_tipo_texto) }}
             {% endif %}
-            {{ detail.label_value('Autoridad Clave', dgt_ruta.autoridad_clave) }}
             {{ detail.label_value('Directorio', dgt_ruta.directorio) }}
         </div>
     {% endcall %}

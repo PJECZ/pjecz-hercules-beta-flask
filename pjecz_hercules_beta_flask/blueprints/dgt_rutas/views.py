@@ -88,8 +88,8 @@ def datatable_json():
                     "url": url_for("dgt_rutas.detail", dgt_ruta_id=resultado.id),
                 },
                 "dgt_deposito_clave": resultado.dgt_deposito.clave,
-                "dgt_tipo_clave": resultado.dgt_tipo.clave,
                 "autoridad_clave": resultado.autoridad_clave,
+                "dgt_tipo_clave": resultado.dgt_tipo.clave,
                 "directorio": resultado.directorio,
             }
         )

@@ -14,8 +14,8 @@ class DgtRutaForm(FlaskForm):
     """Formulario DgtRuta"""
 
     dgt_deposito = SelectField("Depósito", coerce=str, validators=[DataRequired()])
-    dgt_tipo = SelectField("Tipo", coerce=str, validators=[DataRequired()])
     autoridad_clave = StringField("Autoridad Clave", validators=[DataRequired(), Length(max=16)])
+    dgt_tipo = SelectField("Tipo", coerce=str, validators=[DataRequired()])
     clave = StringField("Clave (depósito-autoridad_clave-exp|exh)", validators=[DataRequired(), Length(max=64)])
     directorio = StringField("Directorio (sin diagonales al inicio o final)", validators=[DataRequired(), Length(max=512)])
     guardar = SubmitField("Guardar")

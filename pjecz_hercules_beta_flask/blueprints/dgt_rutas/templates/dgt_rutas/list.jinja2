@@ -36,14 +36,14 @@
                     </div>
                     <div class="col-2">
                         <div class="form-floating">
-                            <input id="filtroDgtRutaDgtTipoClave" type="text" class="form-control" aria-label="Tipo" style="text-transform: uppercase;">
-                            <label for="filtroDgtRutaDgtTipoClave">Tipo</label>
+                            <input id="filtroDgtRutaAutoridadClave" type="text" class="form-control" aria-label="Autoridad Clave" style="text-transform: uppercase;">
+                            <label for="filtroDgtRutaAutoridadClave">Autoridad Clave</label>
                         </div>
                     </div>
                     <div class="col-2">
                         <div class="form-floating">
-                            <input id="filtroDgtRutaAutoridadClave" type="text" class="form-control" aria-label="Autoridad Clave" style="text-transform: uppercase;">
-                            <label for="filtroDgtRutaAutoridadClave">Autoridad Clave</label>
+                            <input id="filtroDgtRutaDgtTipoClave" type="text" class="form-control" aria-label="Tipo" style="text-transform: uppercase;">
+                            <label for="filtroDgtRutaDgtTipoClave">Tipo</label>
                         </div>
                     </div>
                     <div class="col-4 text-end">
@@ -59,8 +59,8 @@
                 <tr>
                     <th>Clave</th>
                     <th>Depósito</th>
-                    <th>Tipo</th>
                     <th>Autoridad Clave</th>
+                    <th>Tipo</th>
                     <th>Directorio</th>
                 </tr>
             </thead>
@@ -80,8 +80,8 @@
         configDTDgtRutas['columns'] = [
             { data: 'detalle' },
             { data: 'dgt_deposito_clave' },
-            { data: 'dgt_tipo_clave' },
             { data: 'autoridad_clave' },
+            { data: 'dgt_tipo_clave' },
             { data: 'directorio' }
         ];
         configDTDgtRutas['columnDefs'] = [
@@ -97,8 +97,8 @@
         const filtrosDgtRutas = new FiltrosDataTable('#dgt_rutas_datatable', configDTDgtRutas);
         filtrosDgtRutas.agregarInput('filtroDgtRutaClave', 'clave');
         filtrosDgtRutas.agregarInput('filtroDgtRutaDgtDepositoClave', 'dgt_deposito_clave');
-        filtrosDgtRutas.agregarInput('filtroDgtRutaDgtTipoClave', 'dgt_tipo_clave');
         filtrosDgtRutas.agregarInput('filtroDgtRutaAutoridadClave', 'autoridad_clave');
+        filtrosDgtRutas.agregarInput('filtroDgtRutaDgtTipoClave', 'dgt_tipo_clave');
         filtrosDgtRutas.precargar();
     </script>
 {% endblock %}
