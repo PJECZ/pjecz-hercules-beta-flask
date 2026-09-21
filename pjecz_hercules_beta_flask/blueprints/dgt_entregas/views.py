@@ -49,6 +49,8 @@ def datatable_json():
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
             consulta = consulta.filter(DgtEntrega.descripcion.contains(descripcion))
+    if "dgt_ruta_id" in request.form:
+        consulta = consulta.filter(DgtEntrega.dgt_ruta_id == request.form["dgt_ruta_id"])
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
@@ -73,7 +75,6 @@ def datatable_json():
                 "expediente": resultado.expediente,
                 "descripcion": resultado.descripcion,
                 "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
-                "dgt_deposito_clave": resultado.dgt_ruta.dgt_deposito.clave,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M"),
             }
         )
