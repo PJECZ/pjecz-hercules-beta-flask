@@ -54,6 +54,7 @@
                     <th>Expediente</th>
                     <th>Descripción</th>
                     <th>Actualizado</th>
+                    <th>Último evento</th>
                 </tr>
             </thead>
         </table>
@@ -74,7 +75,8 @@
             { data: 'autoridad_clave' },
             { data: 'expediente' },
             { data: 'descripcion' },
-            { data: 'archivo_actualizado' }
+            { data: 'archivo_actualizado' },
+            { data: 'ultimo_evento' }
         ];
         configDTDgtDigitalizaciones['columnDefs'] = [
             {
@@ -82,6 +84,26 @@
                 data: null,
                 render: function(data, type, row, meta) {
                     return '<a href="' + data.url + '">' + data.archivo_nombre + '</a>';
+                }
+            },
+            {
+                targets: 5, // ultimo_evento
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data.evento) {
+                        return '';
+                    }
+                    let bgcolor = 'bg-secondary';
+                    switch (data.evento) {
+                        case 'CREADO':     bgcolor = 'bg-success';           break;
+                        case 'ELIMINADO':  bgcolor = 'bg-danger';            break;
+                        case 'MODIFICADO': bgcolor = 'bg-warning text-dark'; break;
+                    }
+                    let html = '<span class="badge ' + bgcolor + '">' + data.evento + '</span>';
+                    // if (data.creado) {
+                    //     html += ' <small>' + data.creado + '</small>';
+                    // }
+                    return html;
                 }
             }
         ];

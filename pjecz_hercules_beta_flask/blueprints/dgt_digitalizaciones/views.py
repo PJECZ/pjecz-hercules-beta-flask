@@ -75,6 +75,10 @@ def datatable_json():
                 "expediente": resultado.expediente,
                 "descripcion": resultado.descripcion,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if resultado.archivo_actualizado else "",
+                "ultimo_evento": {
+                    "evento": resultado.ultimo_evento,
+                    "creado": resultado.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if resultado.ultimo_evento_creado else "",
+                },
             }
         )
     # Entregar JSON

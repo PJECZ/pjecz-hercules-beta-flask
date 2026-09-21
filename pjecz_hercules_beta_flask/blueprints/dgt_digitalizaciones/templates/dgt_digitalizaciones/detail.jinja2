@@ -11,9 +11,15 @@
 {% endblock %}
 
 {% block content %}
+    {% set ultimo_evento_badges = {'CREADO': 'bg-success', 'ELIMINADO': 'bg-danger', 'MODIFICADO': 'bg-warning text-dark'} %}
     {% call detail.card(estatus=dgt_digitalizacion.estatus) %}
         <div class="row">
             {{ detail.label_value_big('Archivo', dgt_digitalizacion.archivo_nombre) }}
+            {% if dgt_digitalizacion.ultimo_evento %}
+                {% set ultimo_evento_html = '<span class="badge ' + ultimo_evento_badges.get(dgt_digitalizacion.ultimo_evento, 'bg-secondary') + '">' + dgt_digitalizacion.ultimo_evento + '</span>' %}
+                {{ detail.label_value('Último evento', ultimo_evento_html | safe) }}
+                {{ detail.label_value('Último evento el', dgt_digitalizacion.ultimo_evento_creado.strftime('%Y-%m-%d %H:%M') if dgt_digitalizacion.ultimo_evento_creado else '') }}
+            {% endif %}
             {% if current_user.can_view('AUTORIDADES') %}
                 {{ detail.label_value('Autoridad', dgt_digitalizacion.autoridad.clave, url_for('autoridades.detail', autoridad_id=dgt_digitalizacion.autoridad_id)) }}
             {% else %}
