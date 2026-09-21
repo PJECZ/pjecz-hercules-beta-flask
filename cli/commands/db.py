@@ -12,6 +12,7 @@ import psycopg2
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.progress import Progress
+from sqlalchemy import text
 from typer import Typer
 
 from pjecz_hercules_beta_flask.app import app
@@ -1562,6 +1563,50 @@ def respaldar_usuarios_roles():
     console.print(f"[green]{contador} usuarios-roles respaldados.")
 
 
+def crear_trigger_ultimo_evento(tabla_padre: str, tabla_bitacora: str, columna_fk: str):
+    """Crear el trigger que copia a la tabla padre el último evento de su bitácora
+
+    Es una función muestra: sirve de plantilla para replicar el mismo patrón (columnas
+    'ultimo_evento' y 'ultimo_evento_creado' en la tabla padre, alimentadas por un
+    trigger AFTER INSERT en su tabla de bitácora) en cualquier otro par tabla-bitácora.
+
+    Los parámetros son nombres de tablas y columnas fijos en el código (no vienen de
+    entradas de usuario), por lo que es seguro construir el DDL con f-strings.
+    """
+    console = Console()
+    nombre_funcion = f"fn_{tabla_bitacora}_actualizar_ultimo_evento"
+    nombre_trigger = f"trg_{tabla_bitacora}_ultimo_evento"
+    database.session.execute(
+        text(
+            f"""
+            CREATE OR REPLACE FUNCTION {nombre_funcion}()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                UPDATE {tabla_padre}
+                SET ultimo_evento = NEW.evento,
+                    ultimo_evento_creado = NEW.creado
+                WHERE id = NEW.{columna_fk};
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+            """
+        )
+    )
+    database.session.execute(text(f"DROP TRIGGER IF EXISTS {nombre_trigger} ON {tabla_bitacora};"))
+    database.session.execute(
+        text(
+            f"""
+            CREATE TRIGGER {nombre_trigger}
+            AFTER INSERT ON {tabla_bitacora}
+            FOR EACH ROW
+            EXECUTE FUNCTION {nombre_funcion}();
+            """
+        )
+    )
+    database.session.commit()
+    console.print(f"[green]Trigger {nombre_trigger} creado en {tabla_bitacora}.")
+
+
 @db.command()
 def inicializar():
     """Inicializar la base de datos"""
@@ -1571,6 +1616,8 @@ def inicializar():
         sys.exit(1)
     database.drop_all()
     database.create_all()
+    crear_trigger_ultimo_evento("dgt_entregas", "dgt_entregas_bitacoras", "dgt_entrega_id")
+    crear_trigger_ultimo_evento("dgt_digitalizaciones", "dgt_digitalizaciones_bitacoras", "dgt_digitalizacion_id")
     console.print("[green]La base de datos se ha inicializado correctamente.")
 
 
