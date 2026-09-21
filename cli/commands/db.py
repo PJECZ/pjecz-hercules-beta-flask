@@ -17,6 +17,9 @@ from typer import Typer
 
 from pjecz_hercules_beta_flask.app import app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
+from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
 from pjecz_hercules_beta_flask.blueprints.distritos.models import Distrito
 from pjecz_hercules_beta_flask.blueprints.domicilios.models import Domicilio
 from pjecz_hercules_beta_flask.blueprints.estados.models import Estado
@@ -34,6 +37,9 @@ from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_email, sa
 
 # Rutas a los archivos CSV
 AUTORIDADES_CSV = "seed/autoridades.csv"
+DGT_DEPOSITOS_CSV = "seed/dgt_depositos.csv"
+DGT_RUTAS_CSV = "seed/dgt_rutas.csv"
+DGT_TIPOS_CSV = "seed/dgt_tipos.csv"
 DISTRITOS_CSV = "seed/distritos.csv"
 DOMICILIOS_CSV = "seed/domicilios.csv"
 ESTADOS_CSV = "seed/estados.csv"
@@ -689,6 +695,106 @@ def alimentar_usuarios_roles():
     if usuarios_que_no_existen:
         console.print(f"[yellow]AVISO: {','.join(usuarios_que_no_existen)} usuarios no existen.")
     console.print(f"[green]{contador} usuarios-roles alimentados.")
+
+
+def alimentar_dgt_tipos():
+    """Alimentar DGT Tipos"""
+    console = Console()
+    ruta = Path(DGT_TIPOS_CSV)
+    if not ruta.exists():
+        console.print(f"[red]ERROR: {ruta.name} no se encontró.")
+        sys.exit(1)
+    if not ruta.is_file():
+        console.print(f"[red]ERROR: {ruta.name} no es un archivo.")
+        sys.exit(1)
+    console.print("Alimentando DGT Tipos...")
+    contador = 0
+    with open(ruta, encoding="utf8") as puntero:
+        rows = csv.DictReader(puntero)
+        for row in rows:
+            clave = safe_clave(row["clave"], max_len=64)
+            descripcion = safe_string(row["descripcion"], save_enie=True)
+            estatus = row["estatus"]
+            DgtTipo(
+                clave=clave,
+                descripcion=descripcion,
+                estatus=estatus,
+            ).save()
+            contador += 1
+    console.print(f"[green]{contador} DGT Tipos alimentados.")
+
+
+def alimentar_dgt_depositos():
+    """Alimentar DGT Depósitos"""
+    console = Console()
+    ruta = Path(DGT_DEPOSITOS_CSV)
+    if not ruta.exists():
+        console.print(f"[red]ERROR: {ruta.name} no se encontró.")
+        sys.exit(1)
+    if not ruta.is_file():
+        console.print(f"[red]ERROR: {ruta.name} no es un archivo.")
+        sys.exit(1)
+    console.print("Alimentando DGT Depósitos...")
+    contador = 0
+    with open(ruta, encoding="utf8") as puntero:
+        rows = csv.DictReader(puntero)
+        for row in rows:
+            clave = safe_clave(row["clave"], max_len=64)
+            descripcion = safe_string(row["descripcion"], save_enie=True)
+            proposito = row["proposito"]
+            if proposito not in DgtDepositos.PROPOSITOS:
+                console.print(f"[red]ERROR: proposito {proposito} no es válido")
+                sys.exit(1)
+            estatus = row["estatus"]
+            DgtDepositos(
+                clave=clave,
+                descripcion=descripcion,
+                proposito=proposito,
+                estatus=estatus,
+            ).save()
+            contador += 1
+    console.print(f"[green]{contador} DGT Depósitos alimentados.")
+
+
+def alimentar_dgt_rutas():
+    """Alimentar DGT Rutas"""
+    console = Console()
+    ruta = Path(DGT_RUTAS_CSV)
+    if not ruta.exists():
+        console.print(f"[red]ERROR: {ruta.name} no se encontró.")
+        sys.exit(1)
+    if not ruta.is_file():
+        console.print(f"[red]ERROR: {ruta.name} no es un archivo.")
+        sys.exit(1)
+    console.print("Alimentando DGT Rutas...")
+    contador = 0
+    with open(ruta, encoding="utf8") as puntero:
+        rows = csv.DictReader(puntero)
+        for row in rows:
+            clave = safe_clave(row["clave"])
+            dgt_deposito_clave = safe_clave(row["dgt_deposito_clave"], max_len=64)
+            dgt_tipo_clave = safe_clave(row["dgt_tipo_clave"], max_len=64)
+            autoridad_clave = safe_clave(row["autoridad_clave"])
+            directorio = row["directorio"]
+            estatus = row["estatus"]
+            dgt_deposito = DgtDepositos.query.filter_by(clave=dgt_deposito_clave).first()
+            if dgt_deposito is None:
+                console.print(f"[red]ERROR: dgt_deposito_clave {dgt_deposito_clave} no existe")
+                sys.exit(1)
+            dgt_tipo = DgtTipo.query.filter_by(clave=dgt_tipo_clave).first()
+            if dgt_tipo is None:
+                console.print(f"[red]ERROR: dgt_tipo_clave {dgt_tipo_clave} no existe")
+                sys.exit(1)
+            DgtRuta(
+                dgt_deposito=dgt_deposito,
+                dgt_tipo=dgt_tipo,
+                clave=clave,
+                autoridad_clave=autoridad_clave,
+                directorio=directorio,
+                estatus=estatus,
+            ).save()
+            contador += 1
+    console.print(f"[green]{contador} DGT Rutas alimentadas.")
 
 
 def copiar_edictos(conn_pro, cursor_pro, conn_dev, cursor_dev):
@@ -1563,6 +1669,82 @@ def respaldar_usuarios_roles():
     console.print(f"[green]{contador} usuarios-roles respaldados.")
 
 
+def respaldar_dgt_tipos():
+    """Respaldar DGT Tipos"""
+    console = Console()
+    ruta = Path(DGT_TIPOS_CSV)
+    if ruta.exists():
+        console.print(f"[red]ERROR: {DGT_TIPOS_CSV} ya existe, no voy a sobreescribirlo.")
+        sys.exit(1)
+    console.print("Respaldando DGT Tipos...")
+    contador = 0
+    with open(ruta, "w", encoding="utf8") as puntero:
+        respaldo = csv.writer(puntero)
+        respaldo.writerow(["clave", "descripcion", "estatus"])
+        for dgt_tipo in DgtTipo.query.order_by(DgtTipo.clave).all():
+            respaldo.writerow(
+                [
+                    dgt_tipo.clave,
+                    dgt_tipo.descripcion,
+                    dgt_tipo.estatus,
+                ]
+            )
+            contador += 1
+    console.print(f"[green]{contador} DGT Tipos respaldados.")
+
+
+def respaldar_dgt_depositos():
+    """Respaldar DGT Depósitos"""
+    console = Console()
+    ruta = Path(DGT_DEPOSITOS_CSV)
+    if ruta.exists():
+        console.print(f"[red]ERROR: {DGT_DEPOSITOS_CSV} ya existe, no voy a sobreescribirlo.")
+        sys.exit(1)
+    console.print("Respaldando DGT Depósitos...")
+    contador = 0
+    with open(ruta, "w", encoding="utf8") as puntero:
+        respaldo = csv.writer(puntero)
+        respaldo.writerow(["clave", "descripcion", "proposito", "estatus"])
+        for dgt_deposito in DgtDepositos.query.order_by(DgtDepositos.clave).all():
+            respaldo.writerow(
+                [
+                    dgt_deposito.clave,
+                    dgt_deposito.descripcion,
+                    dgt_deposito.proposito,
+                    dgt_deposito.estatus,
+                ]
+            )
+            contador += 1
+    console.print(f"[green]{contador} DGT Depósitos respaldados.")
+
+
+def respaldar_dgt_rutas():
+    """Respaldar DGT Rutas"""
+    console = Console()
+    ruta = Path(DGT_RUTAS_CSV)
+    if ruta.exists():
+        console.print(f"[red]ERROR: {DGT_RUTAS_CSV} ya existe, no voy a sobreescribirlo.")
+        sys.exit(1)
+    console.print("Respaldando DGT Rutas...")
+    contador = 0
+    with open(ruta, "w", encoding="utf8") as puntero:
+        respaldo = csv.writer(puntero)
+        respaldo.writerow(["clave", "dgt_deposito_clave", "dgt_tipo_clave", "autoridad_clave", "directorio", "estatus"])
+        for dgt_ruta in DgtRuta.query.order_by(DgtRuta.clave).all():
+            respaldo.writerow(
+                [
+                    dgt_ruta.clave,
+                    dgt_ruta.dgt_deposito.clave,
+                    dgt_ruta.dgt_tipo.clave,
+                    dgt_ruta.autoridad_clave,
+                    dgt_ruta.directorio,
+                    dgt_ruta.estatus,
+                ]
+            )
+            contador += 1
+    console.print(f"[green]{contador} DGT Rutas respaldadas.")
+
+
 def crear_trigger_ultimo_evento(tabla_padre: str, tabla_bitacora: str, columna_fk: str):
     """Crear el trigger que copia a la tabla padre el último evento de su bitácora
 
@@ -1640,6 +1822,9 @@ def alimentar():
     alimentar_oficinas()
     alimentar_usuarios()
     alimentar_usuarios_roles()
+    alimentar_dgt_tipos()
+    alimentar_dgt_depositos()
+    alimentar_dgt_rutas()
     console.print("[green]La base de datos se ha alimentado correctamente.")
 
 
@@ -1663,6 +1848,9 @@ def respaldar():
     respaldar_oficinas()
     respaldar_roles_permisos()
     respaldar_usuarios_roles()
+    respaldar_dgt_tipos()
+    respaldar_dgt_depositos()
+    respaldar_dgt_rutas()
 
 
 @db.command()
