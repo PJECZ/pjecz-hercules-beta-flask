@@ -77,6 +77,45 @@
             </table>
         {% endcall %}
     {% endif %}
+    {% if dgt_ruta.dgt_deposito.proposito == 'DIGITALIZACIONES' and current_user.can_view('DGT DIGITALIZACIONES') and dgt_ruta.estatus == 'A' %}
+        {% call detail.card('Digitalizaciones') %}
+            <!-- Filtros DGT Digitalizaciones -->
+            <div class="row">
+                <div class="col">
+                    <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosDTDgtDigitalizaciones.buscar(); return false;">
+                        <div class="col-3">
+                            <div class="form-floating">
+                                <input id="filtroExpediente" type="text" class="form-control" aria-label="Expediente" style="text-transform: uppercase;">
+                                <label for="filtroExpediente">Expediente</label>
+                            </div>
+                        </div>
+                        <div class="col-5">
+                            <div class="form-floating">
+                                <input id="filtroDescripcion" type="text" class="form-control" aria-label="Descripción" style="text-transform: uppercase;">
+                                <label for="filtroDescripcion">Descripción</label>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDTDgtDigitalizaciones.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
+                            <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDTDgtDigitalizaciones.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- Datatable DGT Digitalizaciones -->
+            <table id="dgt_digitalizaciones_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Archivo</th>
+                        <th>Autoridad</th>
+                        <th>Expediente</th>
+                        <th>Descripción</th>
+                        <th>Actualizado</th>
+                    </tr>
+                </thead>
+            </table>
+        {% endcall %}
+    {% endif %}
 {% endblock %}
 
 {% block custom_javascript %}
@@ -84,9 +123,9 @@
         {% if dgt_ruta.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
         {% if dgt_ruta.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Ruta ' + dgt_ruta.clave + '?') }}{% endif %}
     {% endif %}
+    <script src="/static/js/datatables-constructor.js"></script>
+    <script src="/static/js/datatables-filtros.js"></script>
     {% if dgt_ruta.dgt_deposito.proposito == 'ENTREGAS' and current_user.can_view('DGT ENTREGAS') and dgt_ruta.estatus == 'A' %}
-        <script src="/static/js/datatables-constructor.js"></script>
-        <script src="/static/js/datatables-filtros.js"></script>
         <script>
             // DataTable DGT Entregas
             const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
@@ -114,6 +153,36 @@
             filtrosDTDgtEntregas.agregarInput('filtroExpediente', 'expediente');
             filtrosDTDgtEntregas.agregarInput('filtroDescripcion', 'descripcion');
             filtrosDTDgtEntregas.precargar();
+        </script>
+    {% endif %}
+    {% if dgt_ruta.dgt_deposito.proposito == 'DIGITALIZACIONES' and current_user.can_view('DGT DIGITALIZACIONES') and dgt_ruta.estatus == 'A' %}
+        <script>
+            // DataTable DGT Digitalizaciones
+            const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+            let configDTDgtDigitalizaciones = constructorDataTable.config();
+            configDTDgtDigitalizaciones['ajax']['url'] = "{{ url_for('dgt_digitalizaciones.datatable_json') }}";
+            configDTDgtDigitalizaciones['ajax']['data'] = { 'estatus': "A", 'dgt_ruta_id': "{{ dgt_ruta.id }}" };
+            configDTDgtDigitalizaciones['columns'] = [
+                { data: "detalle" },
+                { data: "autoridad_clave" },
+                { data: "expediente" },
+                { data: "descripcion" },
+                { data: "archivo_actualizado" }
+            ];
+            configDTDgtDigitalizaciones['columnDefs'] = [
+                {
+                    targets: 0, // detalle
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<a href="' + data.url + '">' + data.archivo_nombre + '</a>';
+                    }
+                }
+            ];
+            // Filtros DGT Digitalizaciones
+            const filtrosDTDgtDigitalizaciones = new FiltrosDataTable('#dgt_digitalizaciones_datatable', configDTDgtDigitalizaciones);
+            filtrosDTDgtDigitalizaciones.agregarInput('filtroExpediente', 'expediente');
+            filtrosDTDgtDigitalizaciones.agregarInput('filtroDescripcion', 'descripcion');
+            filtrosDTDgtDigitalizaciones.precargar();
         </script>
     {% endif %}
 {% endblock %}
