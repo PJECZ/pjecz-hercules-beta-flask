@@ -43,6 +43,10 @@ class DgtEntrega(database.Model, UniversalMixin):
     expediente_num: Mapped[Optional[int]]
     descripcion: Mapped[Optional[str]] = mapped_column(String(256))
 
+    # Columnas con el último evento de la bitácora, actualizadas por un trigger
+    ultimo_evento: Mapped[Optional[str]] = mapped_column(String(24))
+    ultimo_evento_creado: Mapped[Optional[datetime]]
+
     # Hijos
     dgt_entregas_bitacoras: Mapped[list["DgtEntregaBitacora"]] = relationship(back_populates="dgt_entrega")
 

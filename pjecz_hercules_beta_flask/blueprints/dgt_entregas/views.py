@@ -76,6 +76,10 @@ def datatable_json():
                 "descripcion": resultado.descripcion,
                 "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M"),
+                "ultimo_evento": {
+                    "evento": resultado.ultimo_evento,
+                    "creado": resultado.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if resultado.ultimo_evento_creado else "",
+                },
             }
         )
     # Entregar JSON
