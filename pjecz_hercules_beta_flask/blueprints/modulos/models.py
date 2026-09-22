@@ -34,6 +34,13 @@ class Modulo(database.Model, UniversalMixin):
     bitacoras: Mapped[list["Bitacora"]] = relationship(back_populates="modulo")
     permisos: Mapped[list["Permiso"]] = relationship(back_populates="modulo")
 
+    @property
+    def icono_nuevo(self):
+        """Nueva versión de Material Icons"""
+        if self.icono.startswith("mdi:"):
+            return self.icono.replace("mdi:", "mdi mdi-")
+        return self.icono
+
     def __repr__(self):
         """Representación"""
         return f"<Modulo {self.nombre}>"
