@@ -1,0 +1,14 @@
+runtime: python314
+instance_class: F2
+automatic_scaling:
+  min_idle_instances: 1
+  max_idle_instances: 2
+  min_instances: 1
+  max_instances: 4
+service: plataforma-web-beta
+entrypoint: gunicorn -w 2 appserver:gunicorn_app
+env_variables:
+  PROJECT_ID: justicia-digital-gob-mx
+  SERVICE_PREFIX: pjecz_hercules_beta_flask
+vpc_access_connector:
+  name: projects/justicia-digital-gob-mx/locations/us-west2/connectors/cupido
