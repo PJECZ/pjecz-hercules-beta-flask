@@ -21,7 +21,7 @@
     <header class="navbar sticky-top bg-dark flex-md-nowrap p-0 shadow" data-bs-theme="dark">
         <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="{{ url_for('sistemas.start') }}">
         <img class="mx-2" src="https://storage.googleapis.com/pjecz-informatica/static/images/logo.png" alt="PJECZ"  width="30" height="30">
-            Plataforma Web
+            Plataforma Web BETA
         </a>
         <ul class="navbar-nav flex-row d-md-none">
             <li class="nav-item text-nowrap">
@@ -47,7 +47,7 @@
                 <div class="offcanvas-md offcanvas-end bg-dark" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
                     <div class="offcanvas-header">
                         <h5 class="offcanvas-title" id="sidebarMenuLabel">
-                            Plataforma Web
+                            Plataforma Web BETA
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
                     </div>
@@ -55,7 +55,7 @@
                     {% call navigation.menu() %}
                         {{ navigation.menu_option('Inicio', url_for('sistemas.start'), 'mdi mdi-home') }}
                         {% for modulo in current_user.modulos_menu_principal %}
-                            {{ navigation.menu_option(modulo.nombre_corto, modulo.ruta, modulo.icono) }}
+                            {{ navigation.menu_option(modulo.nombre_corto, modulo.ruta, modulo.icono_nuevo) }}
                         {% endfor %}
                     {% endcall %}
                 </div>

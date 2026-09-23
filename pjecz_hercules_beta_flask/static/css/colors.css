@@ -1,41 +1,32 @@
 /*
- * Custom Professional Dark Blue Palette for Bootstrap 5
+ * Development Color Palette for Bootstrap 5
  */
 
 :root {
-    /* Colores Principales */
-    --bs-primary: #1a2a6c; /* Azul Real Oscuro */
-    --bs-primary-rgb: 26, 42, 108;
+    --bs-primary: #d97706;
+    --bs-primary-rgb: 217, 119, 6;
 
-    --bs-secondary: #2d3436; /* Gris Carbón */
-    --bs-secondary-rgb: 45, 52, 54;
+    --bs-secondary: #92400e;
+    --bs-secondary-rgb: 146, 64, 14;
 
-    --bs-success: #004d40; /* Verde Bosque Muy Oscuro */
-    --bs-info: #0d47a1; /* Azul Informativo */
-    --bs-warning: #ff8f00; /* Ámbar (contraste) */
-    --bs-danger: #b71c1c; /* Rojo Oscuro */
+    --bs-success: #16a34a;
+    --bs-info: #0ea5e9;
+    --bs-warning: #f59e0b;
+    --bs-danger: #dc2626;
 
-    --bs-light: #f8f9fa;
-    --bs-dark: #0f172a; /* Azul casi negro para fondos */
-    --bs-dark-rgb: 15, 23, 42;
+    --bs-light: #fffbeb;
+    --bs-dark: #451a03;
+    --bs-dark-rgb: 69, 26, 3;
 
-    /* Ajustes de tipografía y bordes para mayor profesionalismo */
-    --bs-body-color: #212529;
-    --bs-link-color: #1a2a6c;
-    --bs-link-hover-color: #0d1b4a;
-    --bs-border-color: #dee2e6;
+    --bs-body-color: #451a03;
+    --bs-link-color: #92400e;
+    --bs-link-hover-color: #78350f;
+    --bs-border-color: #b45309;
 }
 
-/* Sobrescritura de botones para estados hover */
-.btn-primary {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.btn-primary:hover {
-    background-color: #0d1b4a;
-    border-color: #0a1435;
+hr {
+    border-color: var(--bs-border-color);
+    opacity: 1;
 }
 
 /* Estilo para Navbar Profesional */

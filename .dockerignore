@@ -1,14 +1,26 @@
 # Ignore all files and directories starting with a dot
 .*
 
+# Ignore apple files
+.DS_Store
+
 # Ignore the Python virtual environment directory
 .venv/
 
 # Ignore the __pycache__ directories
 __pycache__/
 
-# Ignore log files
-*.log
+# Ignore VSCode
+.vscode/
 
 # Ignore the requirements.txt file
 requirements.txt
+
+# Ignore log files
+*.log
+
+# Ignore seed files
+*.csv
+
+# Ignore export files
+*.xlsx

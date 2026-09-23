@@ -4,7 +4,6 @@ Settings
 
 import os
 from functools import lru_cache
-from turtle import st
 
 from google.cloud import secretmanager
 from pydantic_settings import BaseSettings
