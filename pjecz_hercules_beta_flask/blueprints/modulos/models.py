@@ -27,6 +27,7 @@ class Modulo(database.Model, UniversalMixin):
     en_plataforma_can_mayor: Mapped[bool] = mapped_column(default=False)
     en_plataforma_carina: Mapped[bool] = mapped_column(default=False)
     en_plataforma_hercules: Mapped[bool] = mapped_column(default=False)
+    en_plataforma_hercules_beta: Mapped[bool] = mapped_column(default=False)
     en_plataforma_web: Mapped[bool] = mapped_column(default=False)
     en_portal_notarias: Mapped[bool] = mapped_column(default=False)
 

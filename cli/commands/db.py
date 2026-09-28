@@ -15,7 +15,7 @@ from rich.progress import Progress
 from sqlalchemy import text
 from typer import Typer
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
 from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
@@ -67,6 +67,7 @@ PRODUCTION_DB_PORT = int(os.getenv("PRODUCTION_DB_PORT", "5432"))
 PRODUCTION_DB_NAME = os.getenv("PRODUCTION_DB_NAME")
 
 # Inicializar la aplicación
+app = create_app()
 app.app_context().push()
 
 db = Typer()
@@ -194,6 +195,7 @@ def alimentar_modulos():
             en_navegacion = row["en_navegacion"] == "1"
             en_plataforma_carina = row["en_plataforma_carina"] == "1"
             en_plataforma_hercules = row["en_plataforma_hercules"] == "1"
+            en_plataforma_hercules_beta = row["en_plataforma_hercules_beta"] == "1"
             en_plataforma_web = row["en_plataforma_web"] == "1"
             en_portal_notarias = row["en_portal_notarias"] == "1"
             estatus = row["estatus"]
@@ -208,6 +210,7 @@ def alimentar_modulos():
                 en_navegacion=en_navegacion,
                 en_plataforma_carina=en_plataforma_carina,
                 en_plataforma_hercules=en_plataforma_hercules,
+                en_plataforma_hercules_beta=en_plataforma_hercules_beta,
                 en_plataforma_web=en_plataforma_web,
                 en_portal_notarias=en_portal_notarias,
                 estatus=estatus,
@@ -771,7 +774,7 @@ def alimentar_dgt_rutas():
     with open(ruta, encoding="utf8") as puntero:
         rows = csv.DictReader(puntero)
         for row in rows:
-            clave = safe_clave(row["clave"])
+            clave = safe_clave(row["clave"], max_len=64)
             dgt_deposito_clave = safe_clave(row["dgt_deposito_clave"], max_len=64)
             dgt_tipo_clave = safe_clave(row["dgt_tipo_clave"], max_len=64)
             autoridad_clave = safe_clave(row["autoridad_clave"])
@@ -1477,6 +1480,7 @@ def respaldar_modulos():
                 "en_navegacion",
                 "en_plataforma_carina",
                 "en_plataforma_hercules",
+                "en_plataforma_hercules_beta",
                 "en_plataforma_web",
                 "en_portal_notarias",
                 "estatus",
@@ -1493,6 +1497,7 @@ def respaldar_modulos():
                     int(modulo.en_navegacion),
                     int(modulo.en_plataforma_carina),
                     int(modulo.en_plataforma_hercules),
+                    int(modulo.en_plataforma_hercules_beta),
                     int(modulo.en_plataforma_web),
                     int(modulo.en_portal_notarias),
                     modulo.estatus,
@@ -1855,7 +1860,7 @@ def respaldar():
 
 @db.command()
 def copiar():
-    """Copiar tablas específicas de la BD de producción (túnel SSH) a la BD local"""
+    """Copiar edictos, glosas, listas de acuerdos, sentencias y vsp_digitalizaciones de la BD de producción (túnel SSH) a la BD local"""
     console = Console()
     if DEPLOYMENT_ENVIRONMENT != "DEVELOPMENT":
         console.print(f"[red]PROHIBIDO: No se inicializa porque DEPLOYMENT_ENVIRONMENT es {DEPLOYMENT_ENVIRONMENT}.")

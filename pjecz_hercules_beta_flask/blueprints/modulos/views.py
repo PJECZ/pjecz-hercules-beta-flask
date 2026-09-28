@@ -62,6 +62,7 @@ def datatable_json():
                 "en_plataforma_can_mayor": resultado.en_plataforma_can_mayor,
                 "en_plataforma_carina": resultado.en_plataforma_carina,
                 "en_plataforma_hercules": resultado.en_plataforma_hercules,
+                "en_plataforma_hercules_beta": resultado.en_plataforma_hercules_beta,
                 "en_plataforma_web": resultado.en_plataforma_web,
                 "en_portal_notarias": resultado.en_portal_notarias,
             }
@@ -121,6 +122,7 @@ def new():
             en_plataforma_can_mayor=form.en_plataforma_can_mayor.data,
             en_plataforma_carina=form.en_plataforma_carina.data,
             en_plataforma_hercules=form.en_plataforma_hercules.data,
+            en_plataforma_hercules_beta=form.en_plataforma_hercules_beta.data,
             en_plataforma_web=form.en_plataforma_web.data,
             en_portal_notarias=form.en_portal_notarias.data,
         )
@@ -162,6 +164,7 @@ def edit(modulo_id):
             modulo.en_plataforma_can_mayor = form.en_plataforma_can_mayor.data
             modulo.en_plataforma_carina = form.en_plataforma_carina.data
             modulo.en_plataforma_hercules = form.en_plataforma_hercules.data
+            modulo.en_plataforma_hercules_beta = form.en_plataforma_hercules_beta.data
             modulo.en_plataforma_web = form.en_plataforma_web.data
             modulo.en_portal_notarias = form.en_portal_notarias.data
             modulo.save()
@@ -182,6 +185,7 @@ def edit(modulo_id):
     form.en_plataforma_can_mayor.data = modulo.en_plataforma_can_mayor
     form.en_plataforma_carina.data = modulo.en_plataforma_carina
     form.en_plataforma_hercules.data = modulo.en_plataforma_hercules
+    form.en_plataforma_hercules_beta.data = modulo.en_plataforma_hercules_beta
     form.en_plataforma_web.data = modulo.en_plataforma_web
     form.en_portal_notarias.data = modulo.en_portal_notarias
     return render_template("modulos/edit.jinja2", form=form, modulo=modulo)
