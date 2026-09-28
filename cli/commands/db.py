@@ -1860,7 +1860,7 @@ def respaldar():
 
 @db.command()
 def copiar():
-    """Copiar tablas específicas de la BD de producción (túnel SSH) a la BD local"""
+    """Copiar edictos, glosas, listas de acuerdos, sentencias y vsp_digitalizaciones de la BD de producción (túnel SSH) a la BD local"""
     console = Console()
     if DEPLOYMENT_ENVIRONMENT != "DEVELOPMENT":
         console.print(f"[red]PROHIBIDO: No se inicializa porque DEPLOYMENT_ENVIRONMENT es {DEPLOYMENT_ENVIRONMENT}.")
