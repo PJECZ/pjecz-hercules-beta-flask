@@ -80,6 +80,7 @@ def datatable_json():
                     "evento": resultado.ultimo_evento,
                     "creado": resultado.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if resultado.ultimo_evento_creado else "",
                 },
+                "archivo_uuid": resultado.archivo_uuid,
             }
         )
     # Entregar JSON

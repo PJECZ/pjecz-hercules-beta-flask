@@ -39,6 +39,7 @@
             {{ detail.label_value('CRC32C', dgt_entrega.archivo_crc32c) }}
             {{ detail.label_value('Tamaño (bytes)', dgt_entrega.archivo_tamano) }}
             {{ detail.label_value('Actualizado', dgt_entrega.archivo_actualizado.strftime('%Y-%m-%d %H:%M') if dgt_entrega.archivo_actualizado else '') }}
+            {{ detail.label_value('UUID (en DGT Digitalizaciones)', dgt_entrega.archivo_uuid) }}
         </div>
     {% endcall %}
 {% endblock %}

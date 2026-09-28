@@ -56,6 +56,7 @@
                     <th>Tipo</th>
                     <th>Actualizado</th>
                     <th>Último evento</th>
+                    <th>UUID</th>
                 </tr>
             </thead>
         </table>
@@ -78,7 +79,8 @@
             { data: 'descripcion' },
             { data: 'dgt_tipo_clave' },
             { data: 'archivo_actualizado' },
-            { data: 'ultimo_evento' }
+            { data: 'ultimo_evento' },
+            { data: 'archivo_uuid' }
         ];
         configDTDgtEntregas['columnDefs'] = [
             {
@@ -102,10 +104,17 @@
                         case 'MODIFICADO': bgcolor = 'bg-warning text-dark'; break;
                     }
                     let html = '<span class="badge ' + bgcolor + '">' + data.evento + '</span>';
-                    // if (data.creado) {
-                    //     html += ' <small>' + data.creado + '</small>';
-                    // }
                     return html;
+                }
+            },
+            {
+                targets: 7, // archivo_uuid
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    return '<span class="badge bg-info" title="' + data + '">UUID</span>';
                 }
             }
         ];
