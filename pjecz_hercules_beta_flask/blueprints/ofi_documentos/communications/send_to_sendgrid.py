@@ -10,7 +10,7 @@ import sendgrid
 from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.communications import bitacora
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.models import OfiDocumento
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos_destinatarios.models import OfiDocumentoDestinatario
@@ -31,6 +31,7 @@ SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "")
 TZ = os.getenv("TZ", "America/Mexico_City")
 
 # Cargar la aplicación para tener acceso a la base de datos
+app = create_app()
 app.app_context().push()
 
 

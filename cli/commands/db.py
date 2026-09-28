@@ -15,7 +15,7 @@ from rich.progress import Progress
 from sqlalchemy import text
 from typer import Typer
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
 from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
@@ -67,6 +67,7 @@ PRODUCTION_DB_PORT = int(os.getenv("PRODUCTION_DB_PORT", "5432"))
 PRODUCTION_DB_NAME = os.getenv("PRODUCTION_DB_NAME")
 
 # Inicializar la aplicación
+app = create_app()
 app.app_context().push()
 
 db = Typer()

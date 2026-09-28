@@ -11,7 +11,7 @@ import requests
 from dotenv import load_dotenv
 from xhtml2pdf import pisa
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.communications import bitacora
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.models import OfiDocumento
 from pjecz_hercules_beta_flask.lib.cryptography import simmetric_decrypt
@@ -42,6 +42,7 @@ FERNET_KEY = os.getenv("FERNET_KEY", "")
 TIMEOUT = 120  # segundos
 
 # Cargar la aplicación para tener acceso a la base de datos
+app = create_app()
 app.app_context().push()
 
 

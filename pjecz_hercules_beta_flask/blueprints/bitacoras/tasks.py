@@ -11,7 +11,7 @@ import sendgrid
 from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail, To
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
@@ -37,9 +37,8 @@ SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "plataforma.web@pjecz.gob.mx")
 
 # Cargar la aplicación para tener acceso a la base de datos
-# app = create_app()
+app = create_app()
 app.app_context().push()
-database.app = app
 
 
 def enviar_reporte_diario(
@@ -98,7 +97,7 @@ def enviar_reporte_diario(
     # Si es modo de prueba, preparar el mensaje de término
     if probar is True:
         lineas = []
-        lineas.append(f"Modo de prueba activado. No se enviará el correo electrónico.")
+        lineas.append("Modo de prueba activado. No se enviará el correo electrónico.")
         lineas.append(f"Asunto: {asunto_str}")
         lineas.append(f"Bitácoras encontradas: {len(bitacoras)}")
         for bitacora in bitacoras:

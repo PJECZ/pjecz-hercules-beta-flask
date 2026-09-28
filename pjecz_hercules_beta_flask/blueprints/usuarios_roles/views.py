@@ -36,11 +36,6 @@ def datatable_json():
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
     consulta = UsuarioRol.query.select_from(UsuarioRol).join(Rol).join(Usuario)
-    # Sin filtro por estatus, para usar el boton para activar o desactivar
-    # if "estatus" in request.form:
-    #     consulta = consulta.filter_by(estatus=request.form["estatus"])
-    # else:
-    #     consulta = consulta.filter_by(estatus="A")
     # Primero filtrar por columnas propias
     if "usuario_id" in request.form:
         consulta = consulta.filter(UsuarioRol.usuario_id == request.form["usuario_id"])

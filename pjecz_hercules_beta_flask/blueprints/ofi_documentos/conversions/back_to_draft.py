@@ -6,7 +6,7 @@ import os
 
 from dotenv import load_dotenv
 
-from pjecz_hercules_beta_flask.app import app
+from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.conversions import bitacora
 from pjecz_hercules_beta_flask.blueprints.ofi_documentos.models import OfiDocumento
 from pjecz_hercules_beta_flask.lib.exceptions import (
@@ -24,6 +24,7 @@ load_dotenv()
 CLOUD_STORAGE_DEPOSITO_OFICIOS = os.getenv("CLOUD_STORAGE_DEPOSITO_OFICIOS", "")
 
 # Cargar la aplicación para tener acceso a la base de datos
+app = create_app()
 app.app_context().push()
 
 
