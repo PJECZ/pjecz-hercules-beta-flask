@@ -772,7 +772,7 @@ def alimentar_dgt_rutas():
     with open(ruta, encoding="utf8") as puntero:
         rows = csv.DictReader(puntero)
         for row in rows:
-            clave = safe_clave(row["clave"])
+            clave = safe_clave(row["clave"], max_len=64)
             dgt_deposito_clave = safe_clave(row["dgt_deposito_clave"], max_len=64)
             dgt_tipo_clave = safe_clave(row["dgt_tipo_clave"], max_len=64)
             autoridad_clave = safe_clave(row["autoridad_clave"])
