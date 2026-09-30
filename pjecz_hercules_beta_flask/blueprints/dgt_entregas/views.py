@@ -5,19 +5,24 @@ DGT Entregas, vistas
 import json
 from datetime import date, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 from sqlalchemy import Date, cast, func
+from werkzeug.exceptions import NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas.models import DgtEntrega
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.models import DgtEntregaBitacora
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_string, safe_uuid
+from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "DGT ENTREGAS"
 
@@ -331,3 +336,65 @@ def dashboard_por_expediente_anio():
 def dashboard_por_archivo_actualizado():
     """Tablero de DGT Entregas por archivo actualizado"""
     return render_template("dgt_entregas/dashboard_por_archivo_actualizado.jinja2")
+
+
+@dgt_entregas.route("/dgt_entregas/obtener_url_para_descargar/<dgt_entrega_id>")
+def get_url_for_download_json(dgt_entrega_id):
+    """Obtener la URL de un archivo para descargar"""
+    dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha descargado {dgt_entrega.autoridad.clave} {dgt_entrega.expediente}"),
+        url=url_for("dgt_entregas.detail", dgt_entrega_id=dgt_entrega.id),
+    )
+    bitacora.save()
+    return {
+        "success": True,
+        "message": "Entregada la URL de una digitalización para descargar",
+        "url": dgt_entrega.url,
+    }
+
+
+@dgt_entregas.route("/dgt_entregas/previsualizar_archivo_pdf/<dgt_entrega_id>")
+def preview_file_pdf(dgt_entrega_id):
+    """Previsualizar un archivo PDF"""
+    dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
+    if dgt_entrega.archivo_tamano is not None and dgt_entrega.archivo_tamano > 30 * 1024 * 1024:
+        raise NotFound("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=current_app.config["XXXXXXXXXX"],  # TODO
+            blob_name=get_blob_name_from_url(dgt_entrega.url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha previsualizado {dgt_entrega.autoridad.clave} {dgt_entrega.expediente}"),
+        url=url_for("dgt_entregas.detail", dgt_entrega_id=dgt_entrega.id),
+    )
+    bitacora.save()
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    return response
+
+
+@dgt_entregas.route("/dgt_entregas/descargar_archivo_pdf/<dgt_entrega_id>")
+def download_file_pdf(dgt_entrega_id):
+    """Previsualizar un archivo PDF"""
+    dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
+    if dgt_entrega.archivo_tamano is not None and dgt_entrega.archivo_tamano > 30 * 1024 * 1024:
+        raise NotFound("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=current_app.config["XXXXXXXX"],  # TODO
+            blob_name=get_blob_name_from_url(dgt_entrega.url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename={dgt_entrega.archivo}"
+    return response
