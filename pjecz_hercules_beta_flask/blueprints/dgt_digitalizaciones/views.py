@@ -119,8 +119,8 @@ def detail(dgt_digitalizacion_id):
     return render_template("dgt_digitalizaciones/detail.jinja2", dgt_digitalizacion=dgt_digitalizacion)
 
 
-@dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_totales_por_materia_por_anio")
-def get_totales_por_materia_por_anio_json():
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_totales_por_expediente_anio")
+def get_totales_por_expediente_anio_json():
     """Obtener los totales de DGT Entregas por materia y por año en JSON"""
 
     # Consultar los totales (copiados, enviados) por materia por año

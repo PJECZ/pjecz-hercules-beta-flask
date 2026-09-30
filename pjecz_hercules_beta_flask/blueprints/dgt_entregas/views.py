@@ -3,10 +3,11 @@ DGT Entregas, vistas
 """
 
 import json
+from datetime import date, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
-from sqlalchemy import func
+from sqlalchemy import Date, cast, func
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas.models import DgtEntrega
@@ -156,8 +157,8 @@ def detail(dgt_entrega_id):
     return render_template("dgt_entregas/detail.jinja2", dgt_entrega=dgt_entrega)
 
 
-@dgt_entregas.route("/dgt_entregas/obtener_totales_por_materia_por_anio")
-def get_totales_por_materia_por_anio_json():
+@dgt_entregas.route("/dgt_entregas/obtener_totales_por_expediente_anio")
+def get_totales_por_expediente_anio_json():
     """Obtener los totales de DGT Entregas por materia y por año en JSON"""
 
     # Consultar los totales (copiados, enviados) por materia por año
@@ -208,7 +209,81 @@ def get_totales_por_materia_por_anio_json():
     }
 
 
-@dgt_entregas.route("/dgt_entregas/dashboard")
-def dashboard():
-    """Tablero de DGT Entregas"""
-    return render_template("dgt_entregas/dashboard.jinja2")
+@dgt_entregas.route("/dgt_entregas/obtener_totales_por_materia_por_archivo_actualizado")
+def get_totales_por_materia_por_archivo_actualizado_json():
+    """Obtener los totales de DGT Entregas por materia y por fecha de archivo actualizado en JSON"""
+
+    # Validar las fechas inicial y final, en formato AAAA-MM-DD
+    try:
+        fecha_inicial = date.fromisoformat(request.args["fecha_inicial"])
+        fecha_final = date.fromisoformat(request.args["fecha_final"])
+    except (KeyError, ValueError):
+        return {
+            "success": False,
+            "message": "Las fechas inicial y final son requeridas en formato AAAA-MM-DD",
+            "totales": [],
+        }
+    if fecha_inicial > fecha_final:
+        return {
+            "success": False,
+            "message": "La fecha inicial no puede ser posterior a la fecha final",
+            "totales": [],
+        }
+
+    # Tomar solo la fecha de archivo_actualizado para agrupar
+    fecha = cast(DgtEntrega.archivo_actualizado, Date)
+
+    # Consultar los totales por materia por fecha, incluyendo todo el día de la fecha final
+    consulta = (
+        database.session.query(
+            Materia.id.label("materia_id"),
+            Materia.nombre.label("materia"),
+            fecha.label("fecha"),
+            func.count(DgtEntrega.id).label("total"),
+        )
+        .select_from(
+            DgtEntrega,
+        )
+        .join(
+            Autoridad,
+        )
+        .join(
+            Materia,
+        )
+        .where(
+            DgtEntrega.estatus == "A",
+            DgtEntrega.archivo_actualizado >= fecha_inicial,
+            DgtEntrega.archivo_actualizado < fecha_final + timedelta(days=1),
+        )
+        .group_by(
+            Materia.id,
+            Materia.nombre,
+            fecha,
+        )
+        .order_by(
+            fecha,
+            Materia.nombre,
+        )
+        .all()
+    )
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por materia y por fecha de archivo actualizado",
+        "totales": [
+            {
+                "materia_id": row.materia_id,
+                "materia_nombre": row.materia,
+                "fecha": row.fecha.isoformat(),
+                "total": row.total,
+            }
+            for row in consulta
+        ],
+    }
+
+
+@dgt_entregas.route("/dgt_entregas/dashboard_por_expediente_anio")
+def dashboard_por_expediente_anio():
+    """Tablero de DGT Entregas por año del expediente"""
+    return render_template("dgt_entregas/dashboard_por_expediente_anio.jinja2")

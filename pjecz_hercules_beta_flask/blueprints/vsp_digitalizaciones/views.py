@@ -165,8 +165,8 @@ def recover(vsp_digitalizacion_id):
     return redirect(url_for("vsp_digitalizaciones.detail", vsp_digitalizacion_id=vsp_digitalizacion.id))
 
 
-@vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_totales_por_materia_por_anio")
-def get_totales_por_materia_por_anio_json():
+@vsp_digitalizaciones.route("/vsp_digitalizaciones/obtener_totales_por_expediente_anio")
+def get_totales_por_expediente_anio_json():
     """Obtener un listado de totales por materia por año"""
 
     # Consultar los totales (copiados, enviados) por materia por año
