@@ -6,7 +6,9 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons('DGT Entrega ' + dgt_entrega.archivo_nombre) %}
-        {{ topbar.button_previous('DGT Entregas', url_for('dgt_entregas.list_active')) }}
+        {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_entregas.dashboard_por_expediente_anio')) }}
+        {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_entregas.dashboard_por_archivo_actualizado')) }}
+        {{ topbar.button_previous('Entregas', url_for('dgt_entregas.list_active')) }}
     {% endcall %}
 {% endblock %}
 

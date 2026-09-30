@@ -27,7 +27,7 @@
 
 {% block custom_javascript %}
     <script>
-      fetch("{{ url_for('vsp_digitalizaciones.get_totales_por_materia_por_anio_json') }}", {
+      fetch("{{ url_for('vsp_digitalizaciones.get_totales_por_expediente_anio_json') }}", {
         method: "GET",
         headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
       })
