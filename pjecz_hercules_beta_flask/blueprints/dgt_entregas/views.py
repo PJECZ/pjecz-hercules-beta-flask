@@ -58,6 +58,13 @@ def datatable_json():
             consulta = consulta.filter(DgtEntrega.expediente_anio == expediente_anio)
         except ValueError:
             pass
+    if "archivo_actualizado" in request.form:
+        try:
+            archivo_actualizado = date.fromisoformat(request.form["archivo_actualizado"])
+            consulta = consulta.filter(DgtEntrega.archivo_actualizado >= archivo_actualizado)
+            consulta = consulta.filter(DgtEntrega.archivo_actualizado < archivo_actualizado + timedelta(days=1))
+        except ValueError:
+            pass
     # Luego filtrar por columnas de otras tablas
     autoridad_unida = False
     if "autoridad_clave" in request.form:
@@ -116,6 +123,14 @@ def list_active():
             filtros["expediente_anio"] = expediente_anio
             titulo = f"{titulo} del año {expediente_anio}"
         except (KeyError, ValueError):
+            pass
+    # Si viene la fecha de archivo actualizado, filtrar por ésta
+    if "archivo_actualizado" in request.args:
+        try:
+            archivo_actualizado = date.fromisoformat(request.args["archivo_actualizado"])
+            filtros["archivo_actualizado"] = archivo_actualizado.isoformat()
+            titulo = f"{titulo} actualizadas el {archivo_actualizado.isoformat()}"
+        except ValueError:
             pass
     # Si viene la materia, filtrar por ésta
     if "materia_id" in request.args:
@@ -287,3 +302,9 @@ def get_totales_por_materia_por_archivo_actualizado_json():
 def dashboard_por_expediente_anio():
     """Tablero de DGT Entregas por año del expediente"""
     return render_template("dgt_entregas/dashboard_por_expediente_anio.jinja2")
+
+
+@dgt_entregas.route("/dgt_entregas/dashboard_por_archivo_actualizado")
+def dashboard_por_archivo_actualizado():
+    """Tablero de DGT Entregas por archivo actualizado"""
+    return render_template("dgt_entregas/dashboard_por_archivo_actualizado.jinja2")
