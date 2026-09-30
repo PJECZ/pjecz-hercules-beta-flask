@@ -33,7 +33,7 @@
                             <label for="filtroDgtEntregaExpediente">Expediente</label>
                         </div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-2">
                         <div class="form-floating">
                             <input id="filtroDgtEntregaDescripcion" type="text" class="form-control" aria-label="Descripción" style="text-transform: uppercase;">
                             <label for="filtroDgtEntregaDescripcion">Descripción</label>
@@ -50,9 +50,15 @@
                             <label for="filtroDgtEntregaUltimoEvento">Último evento</label>
                         </div>
                     </div>
+                    <div class="col-1 d-flex align-items-center">
+                        <div class="form-check">
+                            <input id="filtroDgtEntregaArchivoUuidNulo" type="checkbox" class="form-check-input" onchange="cambiarArchivoUuidNulo();" {% if archivo_uuid_nulo %}checked{% endif %}>
+                            <label for="filtroDgtEntregaArchivoUuidNulo" class="form-check-label">UUID nulo</label>
+                        </div>
+                    </div>
                     <div class="col-3 text-end">
                         <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDgtEntregas.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
-                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDgtEntregas.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="limpiarFiltros();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
                 </form>
             </div>
@@ -137,5 +143,19 @@
         filtrosDgtEntregas.agregarInput('filtroDgtEntregaDescripcion', 'descripcion');
         filtrosDgtEntregas.agregarSelect('filtroDgtEntregaUltimoEvento', 'ultimo_evento');
         filtrosDgtEntregas.precargar();
+        // Checkbox UUID nulo, se maneja aparte porque FiltrosDataTable solo lee el value de los elementos
+        function cambiarArchivoUuidNulo() {
+            if (document.getElementById('filtroDgtEntregaArchivoUuidNulo').checked) {
+                configDTDgtEntregas['ajax']['data']['archivo_uuid_nulo'] = '1';
+            } else {
+                delete configDTDgtEntregas['ajax']['data']['archivo_uuid_nulo'];
+            }
+            filtrosDgtEntregas.buscar();
+        }
+        // Limpiar, incluyendo el checkbox UUID nulo
+        function limpiarFiltros() {
+            delete configDTDgtEntregas['ajax']['data']['archivo_uuid_nulo'];
+            filtrosDgtEntregas.limpiar();
+        }
     </script>
 {% endblock %}

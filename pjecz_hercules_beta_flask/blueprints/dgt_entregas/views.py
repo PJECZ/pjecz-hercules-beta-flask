@@ -70,6 +70,8 @@ def datatable_json():
         ultimo_evento = safe_string(request.form["ultimo_evento"])
         if ultimo_evento in DgtEntregaBitacora.EVENTOS:
             consulta = consulta.filter(DgtEntrega.ultimo_evento == ultimo_evento)
+    if request.form.get("archivo_uuid_nulo") == "1":
+        consulta = consulta.filter(DgtEntrega.archivo_uuid.is_(None))
     # Luego filtrar por columnas de otras tablas
     autoridad_unida = False
     if "autoridad_clave" in request.form:
@@ -152,6 +154,10 @@ def list_active():
         if ultimo_evento in DgtEntregaBitacora.EVENTOS:
             filtros["ultimo_evento"] = ultimo_evento
             titulo = f"{titulo} con último evento {DgtEntregaBitacora.EVENTOS[ultimo_evento].lower()}"
+    # Si viene archivo_uuid_nulo, filtrar por los que no tienen UUID
+    if request.args.get("archivo_uuid_nulo") == "1":
+        filtros["archivo_uuid_nulo"] = "1"
+        titulo = f"{titulo} sin UUID"
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps(filtros),
@@ -159,6 +165,7 @@ def list_active():
         estatus="A",
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento=filtros.get("ultimo_evento", ""),
+        archivo_uuid_nulo="archivo_uuid_nulo" in filtros,
     )
 
 
@@ -173,6 +180,7 @@ def list_inactive():
         estatus="B",
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento="",
+        archivo_uuid_nulo=False,
     )
 
 
