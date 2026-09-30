@@ -11,6 +11,7 @@ from sqlalchemy import Date, cast, func
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas.models import DgtEntrega
+from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.models import DgtEntregaBitacora
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
@@ -65,6 +66,10 @@ def datatable_json():
             consulta = consulta.filter(DgtEntrega.archivo_actualizado < archivo_actualizado + timedelta(days=1))
         except ValueError:
             pass
+    if "ultimo_evento" in request.form:
+        ultimo_evento = safe_string(request.form["ultimo_evento"])
+        if ultimo_evento in DgtEntregaBitacora.EVENTOS:
+            consulta = consulta.filter(DgtEntrega.ultimo_evento == ultimo_evento)
     # Luego filtrar por columnas de otras tablas
     autoridad_unida = False
     if "autoridad_clave" in request.form:
@@ -141,11 +146,19 @@ def list_active():
                 titulo = f"{titulo} en {materia.nombre}"
         except (KeyError, ValueError):
             pass
+    # Si viene el último evento, filtrar por éste
+    if "ultimo_evento" in request.args:
+        ultimo_evento = safe_string(request.args["ultimo_evento"])
+        if ultimo_evento in DgtEntregaBitacora.EVENTOS:
+            filtros["ultimo_evento"] = ultimo_evento
+            titulo = f"{titulo} con último evento {DgtEntregaBitacora.EVENTOS[ultimo_evento].lower()}"
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps(filtros),
         titulo=titulo,
         estatus="A",
+        eventos=DgtEntregaBitacora.EVENTOS,
+        ultimo_evento=filtros.get("ultimo_evento", ""),
     )
 
 
@@ -158,6 +171,8 @@ def list_inactive():
         filtros=json.dumps({"estatus": "B"}),
         titulo="DGT Entregas inactivas",
         estatus="B",
+        eventos=DgtEntregaBitacora.EVENTOS,
+        ultimo_evento="",
     )
 
 
