@@ -51,12 +51,28 @@ def datatable_json():
             consulta = consulta.filter(DgtEntrega.descripcion.contains(descripcion))
     if "dgt_ruta_id" in request.form:
         consulta = consulta.filter(DgtEntrega.dgt_ruta_id == request.form["dgt_ruta_id"])
+    if "expediente_anio" in request.form:
+        try:
+            expediente_anio = int(request.form["expediente_anio"])
+            consulta = consulta.filter(DgtEntrega.expediente_anio == expediente_anio)
+        except ValueError:
+            pass
     # Luego filtrar por columnas de otras tablas
+    autoridad_unida = False
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
                 consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+                autoridad_unida = True
+        except ValueError:
+            pass
+    if "materia_id" in request.form:
+        try:
+            materia_id = int(request.form["materia_id"])
+            if not autoridad_unida:
+                consulta = consulta.join(Autoridad)
+            consulta = consulta.filter(Autoridad.materia_id == materia_id)
         except ValueError:
             pass
     # Ordenar y paginar
@@ -90,10 +106,29 @@ def datatable_json():
 @dgt_entregas.route("/dgt_entregas")
 def list_active():
     """Listado de DGT Entregas activas"""
+    filtros = {"estatus": "A"}
+    titulo = "DGT Entregas"
+    # Si viene el año del expediente, filtrar por éste
+    if "expediente_anio" in request.args:
+        try:
+            expediente_anio = int(request.args["expediente_anio"])
+            filtros["expediente_anio"] = expediente_anio
+            titulo = f"{titulo} del año {expediente_anio}"
+        except (KeyError, ValueError):
+            pass
+    # Si viene la materia, filtrar por ésta
+    if "materia_id" in request.args:
+        try:
+            materia = Materia.query.get(int(request.args["materia_id"]))
+            if materia is not None:
+                filtros["materia_id"] = materia.id
+                titulo = f"{titulo} en {materia.nombre}"
+        except (KeyError, ValueError):
+            pass
     return render_template(
         "dgt_entregas/list.jinja2",
-        filtros=json.dumps({"estatus": "A"}),
-        titulo="DGT Entregas",
+        filtros=json.dumps(filtros),
+        titulo=titulo,
         estatus="A",
     )
 
@@ -128,6 +163,7 @@ def get_totales_por_materia_por_anio_json():
     # Consultar los totales (copiados, enviados) por materia por año
     consulta = (
         database.session.query(
+            Materia.id.label("materia_id"),
             Materia.nombre.label("materia"),
             DgtEntrega.expediente_anio.label("anio"),
             func.count(DgtEntrega.id).label("total"),
@@ -145,6 +181,7 @@ def get_totales_por_materia_por_anio_json():
             DgtEntrega.estatus == "A",
         )
         .group_by(
+            Materia.id,
             Materia.nombre,
             DgtEntrega.expediente_anio,
         )
@@ -161,6 +198,7 @@ def get_totales_por_materia_por_anio_json():
         "message": "Entrega exitosa del listado de totales por materia",
         "totales": [
             {
+                "materia_id": row.materia_id,
                 "materia_nombre": row.materia,
                 "anio": row.anio,
                 "total": row.total,

@@ -26,6 +26,8 @@
 
 {% block custom_javascript %}
     <script>
+      const listActiveUrl = "{{ url_for('dgt_entregas.list_active') }}";
+
       fetch("{{ url_for('dgt_entregas.get_totales_por_materia_por_anio_json') }}", {
         method: "GET",
         headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
@@ -43,6 +45,12 @@
 
           // Años únicos descendentes para la tabla
           const aniosDesc = [...new Set(totales.map((r) => r.anio))].sort((a, b) => b - a);
+
+          // ID de cada materia por su nombre, para elaborar los enlaces
+          const materiasIds = {};
+          totales.forEach((r) => {
+            materiasIds[r.materia_nombre] = r.materia_id;
+          });
 
           // Índice de acceso rápido: {anio: {materia: total}}
           const indice = {};
@@ -95,7 +103,15 @@
 
           const columns = [
             { title: "Año", data: "anio" },
-            ...materias.map((materia) => ({ title: materia, data: materia })),
+            ...materias.map((materia) => ({
+              title: materia,
+              data: materia,
+              render: (total, type, row) => {
+                if (type !== "display" || total === 0 || row.anio === null) return total;
+                const params = new URLSearchParams({ expediente_anio: row.anio, materia_id: materiasIds[materia] });
+                return `<a href="${listActiveUrl}?${params}">${total}</a>`;
+              },
+            })),
           ];
 
           $("#dashboard_datatable").DataTable({
