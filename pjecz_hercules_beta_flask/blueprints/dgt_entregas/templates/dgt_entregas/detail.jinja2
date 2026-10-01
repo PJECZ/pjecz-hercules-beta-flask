@@ -2,10 +2,10 @@
 {% import 'macros/detail.jinja2' as detail %}
 {% import 'macros/topbar.jinja2' as topbar %}
 
-{% block title %}DGT Entrega {{ dgt_entrega.archivo_nombre }}{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
 
 {% block topbar_actions %}
-    {% call topbar.page_buttons('DGT Entrega ' + dgt_entrega.archivo_nombre) %}
+    {% call topbar.page_buttons(titulo) %}
         {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_entregas.dashboard_por_expediente_anio')) }}
         {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_entregas.dashboard_por_archivo_actualizado')) }}
         {{ topbar.button_previous('Entregas', url_for('dgt_entregas.list_active')) }}
@@ -16,7 +16,7 @@
     {% set ultimo_evento_badges = {'CREADO': 'bg-success', 'ELIMINADO': 'bg-danger', 'MODIFICADO': 'bg-warning text-dark'} %}
     {% call detail.card(estatus=dgt_entrega.estatus) %}
         <div class="row">
-            {{ detail.label_value_big('Archivo', dgt_entrega.archivo_nombre) }}
+            {{ detail.label_value('Archivo', dgt_entrega.archivo_nombre) }}
             {% if dgt_entrega.ultimo_evento %}
                 {% set ultimo_evento_html = '<span class="badge ' + ultimo_evento_badges.get(dgt_entrega.ultimo_evento, 'bg-secondary') + '">' + dgt_entrega.ultimo_evento + '</span>' %}
                 {{ detail.label_value('Último evento', ultimo_evento_html | safe) }}
@@ -44,4 +44,56 @@
             {{ detail.label_value('UUID (en DGT Digitalizaciones)', dgt_entrega.archivo_uuid) }}
         </div>
     {% endcall %}
+    {% call detail.card() %}
+        {% if dgt_entrega.archivo_tamano is not none and dgt_entrega.archivo_tamano > vista_previa_pdf_max_size_mb %}
+            <a href="" class="w-100 btn btn-lg btn-success my-2" id="downloadPDFButton" target="_blank" style="display: none;">
+                <span class="mdi mdi-download"></span>
+                Descargar archivo
+                {% set tamano = dgt_entrega.archivo_tamano %}
+                {% if tamano >= 1048576 %}
+                    {% set tamano_legible = '%.2f MB' | format(tamano / 1048576) %}
+                {% elif tamano >= 1024 %}
+                    {% set tamano_legible = '%.2f KB' | format(tamano / 1024) %}
+                {% else %}
+                    {% set tamano_legible = tamano | string + ' bytes' %}
+                {% endif %}
+                {{ tamano_legible }}
+            </a>
+            <div class="alert alert-danger" role="alert" id="downloadPDFError" style="display: none;">
+                No se pudo obtener el enlace para descargar el archivo PDF.
+            </div>
+        {% else %}
+            <object data="{{ url_for('dgt_entregas.preview_file_pdf', dgt_entrega_id=dgt_entrega.id) }}" type="application/pdf" width="100%" height="600px">
+                <p class="mb-0">El navegador no puede mostrar el archivo PDF o no existe en el depósito.</p>
+            </object>
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if dgt_entrega.archivo_tamano is not none and dgt_entrega.archivo_tamano > vista_previa_pdf_max_size_mb %}
+        <script>
+        // Cuando el PDF es mayor de vista_previa_pdf_max_size_mb, se muestra un botón para descargarlo en lugar de la vista previa
+        downloadPDFButton = document.getElementById('downloadPDFButton');
+        downloadPDFError = document.getElementById('downloadPDFError');
+        // Llamar a la vista dgt_entregas.get_url_for_download_json que entrega un JSON con success, message y el url,
+        fetch('{{ url_for('dgt_entregas.get_url_for_download_json', dgt_entrega_id=dgt_entrega.id) }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Habilitar el botón para descargar el PDF y se cambia su atributo href con la URL obtenida,
+                    downloadPDFButton.setAttribute('href', data.url);
+                    downloadPDFButton.style.display = 'block';
+                } else {
+                    // Mostrar mensaje de error
+                    downloadPDFError.style.display = 'block';
+                    downloadPDFError.textContent = data.message || 'No se pudo obtener el enlace para descargar el archivo PDF.';
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la URL del PDF:', error);
+                downloadPDFError.style.display = 'block';
+            });
+        </script>
+    {% endif %}
 {% endblock %}

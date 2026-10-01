@@ -7,10 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block title %}Dashboard DGT Digitalizaciones{% endblock %}
+{% block title %}Digitalizaciones por año del expediente{% endblock %}
 
 {% block topbar_actions %}
-    {% call topbar.page_buttons('Dashboard DGT Digitalizaciones') %}
+    {% call topbar.page_buttons('Digitalizaciones por año del expediente') %}
+        {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_digitalizaciones.dashboard_por_archivo_actualizado')) }}
         {{ topbar.button_previous('Digitalizaciones', url_for('dgt_digitalizaciones.list_active')) }}
     {% endcall %}
 {% endblock %}
@@ -26,6 +27,8 @@
 
 {% block custom_javascript %}
     <script>
+      const listActiveUrl = "{{ url_for('dgt_digitalizaciones.list_active') }}";
+
       fetch("{{ url_for('dgt_digitalizaciones.get_totales_por_expediente_anio_json') }}", {
         method: "GET",
         headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
@@ -43,6 +46,12 @@
 
           // Años únicos descendentes para la tabla
           const aniosDesc = [...new Set(totales.map((r) => r.anio))].sort((a, b) => b - a);
+
+          // ID de cada materia por su nombre, para elaborar los enlaces
+          const materiasIds = {};
+          totales.forEach((r) => {
+            materiasIds[r.materia_nombre] = r.materia_id;
+          });
 
           // Índice de acceso rápido: {anio: {materia: total}}
           const indice = {};
@@ -74,7 +83,7 @@
               responsive: true,
               plugins: {
                 legend: { display: false },
-                title: { display: true, text: "Total de entregas por materia" },
+                title: { display: true, text: "Total de digitalizaciones por materia" },
               },
               scales: {
                 x: { title: { display: true, text: "Materia" } },
@@ -95,7 +104,15 @@
 
           const columns = [
             { title: "Año", data: "anio" },
-            ...materias.map((materia) => ({ title: materia, data: materia })),
+            ...materias.map((materia) => ({
+              title: materia,
+              data: materia,
+              render: (total, type, row) => {
+                if (type !== "display" || total === 0 || row.anio === null) return total;
+                const params = new URLSearchParams({ expediente_anio: row.anio, materia_id: materiasIds[materia] });
+                return `<a href="${listActiveUrl}?${params}">${total}</a>`;
+              },
+            })),
           ];
 
           $("#dashboard_datatable").DataTable({
@@ -110,6 +127,6 @@
             language: { zeroRecords: "No se encontraron registros" },
           });
         })
-        .catch((error) => console.error("Error al cargar el dashboard:", error));
+        .catch((error) => console.error("Error al cargar el tablero:", error));
     </script>
 {% endblock %}

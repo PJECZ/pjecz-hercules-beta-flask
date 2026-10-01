@@ -3,21 +3,29 @@ DGT Digitalizaciones, vistas
 """
 
 import json
+from datetime import date, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
-from sqlalchemy import func
+from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+from sqlalchemy import Date, cast, func
+from werkzeug.exceptions import BadRequest, NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones.models import DgtDigitalizacion
+from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones_bitacoras.models import DgtDigitalizacionBitacora
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_string, safe_uuid
+from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "DGT DIGITALIZACIONES"
+VISTA_PREVIA_PDF_MAX_SIZE_MB = 30 * 1024 * 1024  # 30 MB
 
 dgt_digitalizaciones = Blueprint("dgt_digitalizaciones", __name__, template_folder="templates")
 
@@ -51,16 +59,47 @@ def datatable_json():
             consulta = consulta.filter(DgtDigitalizacion.descripcion.contains(descripcion))
     if "dgt_ruta_id" in request.form:
         consulta = consulta.filter(DgtDigitalizacion.dgt_ruta_id == request.form["dgt_ruta_id"])
+    if "expediente_anio" in request.form:
+        try:
+            expediente_anio = int(request.form["expediente_anio"])
+            consulta = consulta.filter(DgtDigitalizacion.expediente_anio == expediente_anio)
+        except ValueError:
+            pass
+    if "archivo_actualizado" in request.form:
+        try:
+            archivo_actualizado = date.fromisoformat(request.form["archivo_actualizado"])
+            consulta = consulta.filter(DgtDigitalizacion.archivo_actualizado >= archivo_actualizado)
+            consulta = consulta.filter(DgtDigitalizacion.archivo_actualizado < archivo_actualizado + timedelta(days=1))
+        except ValueError:
+            pass
+    if "ultimo_evento" in request.form:
+        ultimo_evento = safe_string(request.form["ultimo_evento"])
+        if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
+            consulta = consulta.filter(DgtDigitalizacion.ultimo_evento == ultimo_evento)
     # Luego filtrar por columnas de otras tablas
+    autoridad_unida = False
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
                 consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
+                autoridad_unida = True
+        except ValueError:
+            pass
+    if "materia_id" in request.form:
+        try:
+            materia_id = int(request.form["materia_id"])
+            if not autoridad_unida:
+                consulta = consulta.join(Autoridad)
+            consulta = consulta.filter(Autoridad.materia_id == materia_id)
         except ValueError:
             pass
     # Ordenar y paginar
-    registros = consulta.order_by(DgtDigitalizacion.archivo_actualizado).offset(start).limit(rows_per_page).all()
+    registros = consulta.order_by(
+        DgtDigitalizacion.expediente_anio,
+        DgtDigitalizacion.expediente_num,
+        DgtDigitalizacion.descripcion,
+    ).offset(start).limit(rows_per_page).all()
     total = consulta.count()
     # Elaborar datos para DataTable
     data = []
@@ -68,12 +107,12 @@ def datatable_json():
         data.append(
             {
                 "detalle": {
-                    "archivo_nombre": resultado.archivo_nombre,
+                    "archivo_nombre": resultado.expediente,
                     "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=resultado.id),
                 },
                 "autoridad_clave": resultado.autoridad.clave,
-                "expediente": resultado.expediente,
                 "descripcion": resultado.descripcion,
+                "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
                 "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if resultado.archivo_actualizado else "",
                 "ultimo_evento": {
                     "evento": resultado.ultimo_evento,
@@ -88,11 +127,46 @@ def datatable_json():
 @dgt_digitalizaciones.route("/dgt_digitalizaciones")
 def list_active():
     """Listado de DGT Digitalizaciones activas"""
+    filtros = {"estatus": "A"}
+    titulo = "Digitalizaciones"
+    # Si viene el año del expediente, filtrar por éste
+    if "expediente_anio" in request.args:
+        try:
+            expediente_anio = int(request.args["expediente_anio"])
+            filtros["expediente_anio"] = str(expediente_anio)
+            titulo = f"{titulo} del año {expediente_anio}"
+        except (KeyError, ValueError):
+            pass
+    # Si viene la fecha de archivo actualizado, filtrar por ésta
+    if "archivo_actualizado" in request.args:
+        try:
+            archivo_actualizado = date.fromisoformat(request.args["archivo_actualizado"])
+            filtros["archivo_actualizado"] = archivo_actualizado.isoformat()
+            titulo = f"{titulo} actualizadas el {archivo_actualizado.isoformat()}"
+        except ValueError:
+            pass
+    # Si viene la materia, filtrar por ésta
+    if "materia_id" in request.args:
+        try:
+            materia = Materia.query.get(int(request.args["materia_id"]))
+            if materia is not None:
+                filtros["materia_id"] = materia.id
+                titulo = f"{titulo} en {materia.nombre}"
+        except (KeyError, ValueError):
+            pass
+    # Si viene el último evento, filtrar por éste
+    if "ultimo_evento" in request.args:
+        ultimo_evento = safe_string(request.args["ultimo_evento"])
+        if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
+            filtros["ultimo_evento"] = ultimo_evento
+            titulo = f"{titulo} con último evento {DgtDigitalizacionBitacora.EVENTOS[ultimo_evento].lower()}"
     return render_template(
         "dgt_digitalizaciones/list.jinja2",
-        filtros=json.dumps({"estatus": "A"}),
-        titulo="DGT Digitalizaciones",
+        filtros=json.dumps(filtros),
+        titulo=titulo,
         estatus="A",
+        eventos=DgtDigitalizacionBitacora.EVENTOS,
+        ultimo_evento=filtros.get("ultimo_evento", ""),
     )
 
 
@@ -103,8 +177,10 @@ def list_inactive():
     return render_template(
         "dgt_digitalizaciones/list.jinja2",
         filtros=json.dumps({"estatus": "B"}),
-        titulo="DGT Digitalizaciones inactivas",
+        titulo="Digitalizaciones inactivas",
         estatus="B",
+        eventos=DgtDigitalizacionBitacora.EVENTOS,
+        ultimo_evento="",
     )
 
 
@@ -116,16 +192,22 @@ def detail(dgt_digitalizacion_id):
         flash("ID de DGT Digitalización inválido", "warning")
         return redirect(url_for("dgt_digitalizaciones.list_active"))
     dgt_digitalizacion = DgtDigitalizacion.query.get_or_404(dgt_digitalizacion_id)
-    return render_template("dgt_digitalizaciones/detail.jinja2", dgt_digitalizacion=dgt_digitalizacion)
+    return render_template(
+        "dgt_digitalizaciones/detail.jinja2",
+        dgt_digitalizacion=dgt_digitalizacion,
+        eventos=DgtDigitalizacionBitacora.EVENTOS,
+        titulo=f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente} {dgt_digitalizacion.descripcion} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
+    )
 
 
 @dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_totales_por_expediente_anio")
 def get_totales_por_expediente_anio_json():
-    """Obtener los totales de DGT Entregas por materia y por año en JSON"""
+    """Obtener los totales de DGT Digitalizaciones por materia y por año en JSON"""
 
-    # Consultar los totales (copiados, enviados) por materia por año
+    # Consultar los totales por materia por año
     consulta = (
         database.session.query(
+            Materia.id.label("materia_id"),
             Materia.nombre.label("materia"),
             DgtDigitalizacion.expediente_anio.label("anio"),
             func.count(DgtDigitalizacion.id).label("total"),
@@ -143,6 +225,7 @@ def get_totales_por_expediente_anio_json():
             DgtDigitalizacion.estatus == "A",
         )
         .group_by(
+            Materia.id,
             Materia.nombre,
             DgtDigitalizacion.expediente_anio,
         )
@@ -159,6 +242,7 @@ def get_totales_por_expediente_anio_json():
         "message": "Entrega exitosa del listado de totales por materia",
         "totales": [
             {
+                "materia_id": row.materia_id,
                 "materia_nombre": row.materia,
                 "anio": row.anio,
                 "total": row.total,
@@ -168,7 +252,172 @@ def get_totales_por_expediente_anio_json():
     }
 
 
-@dgt_digitalizaciones.route("/dgt_digitalizaciones/dashboard")
-def dashboard():
-    """Tablero de DGT Entregas"""
-    return render_template("dgt_digitalizaciones/dashboard.jinja2")
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_totales_por_materia_por_archivo_actualizado")
+def get_totales_por_materia_por_archivo_actualizado_json():
+    """Obtener los totales de DGT Digitalizaciones por materia y por fecha de archivo actualizado en JSON"""
+
+    # Validar las fechas inicial y final, en formato AAAA-MM-DD
+    try:
+        fecha_inicial = date.fromisoformat(request.args["fecha_inicial"])
+        fecha_final = date.fromisoformat(request.args["fecha_final"])
+    except (KeyError, ValueError):
+        return {
+            "success": False,
+            "message": "Las fechas inicial y final son requeridas en formato AAAA-MM-DD",
+            "totales": [],
+        }
+    if fecha_inicial > fecha_final:
+        return {
+            "success": False,
+            "message": "La fecha inicial no puede ser posterior a la fecha final",
+            "totales": [],
+        }
+
+    # Tomar solo la fecha de archivo_actualizado para agrupar
+    fecha = cast(DgtDigitalizacion.archivo_actualizado, Date)
+
+    # Consultar los totales por materia por fecha, incluyendo todo el día de la fecha final
+    consulta = (
+        database.session.query(
+            Materia.id.label("materia_id"),
+            Materia.nombre.label("materia"),
+            fecha.label("fecha"),
+            func.count(DgtDigitalizacion.id).label("total"),
+        )
+        .select_from(
+            DgtDigitalizacion,
+        )
+        .join(
+            Autoridad,
+        )
+        .join(
+            Materia,
+        )
+        .where(
+            DgtDigitalizacion.estatus == "A",
+            DgtDigitalizacion.archivo_actualizado >= fecha_inicial,
+            DgtDigitalizacion.archivo_actualizado < fecha_final + timedelta(days=1),
+        )
+        .group_by(
+            Materia.id,
+            Materia.nombre,
+            fecha,
+        )
+        .order_by(
+            fecha,
+            Materia.nombre,
+        )
+        .all()
+    )
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por materia y por fecha de archivo actualizado",
+        "totales": [
+            {
+                "materia_id": row.materia_id,
+                "materia_nombre": row.materia,
+                "fecha": row.fecha.isoformat(),
+                "total": row.total,
+            }
+            for row in consulta
+        ],
+    }
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/dashboard_por_expediente_anio")
+def dashboard_por_expediente_anio():
+    """Tablero de DGT Digitalizaciones por año del expediente"""
+    return render_template("dgt_digitalizaciones/dashboard_por_expediente_anio.jinja2")
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/dashboard_por_archivo_actualizado")
+def dashboard_por_archivo_actualizado():
+    """Tablero de DGT Digitalizaciones por archivo actualizado"""
+    return render_template("dgt_digitalizaciones/dashboard_por_archivo_actualizado.jinja2")
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_url_para_descargar/<dgt_digitalizacion_id>")
+def get_url_for_download_json(dgt_digitalizacion_id):
+    """Obtener la URL de un archivo para descargar"""
+    dgt_digitalizacion_id = safe_uuid(dgt_digitalizacion_id)
+    if dgt_digitalizacion_id == "":
+        return {
+            "success": False,
+            "message": "ID de DGT Digitalización inválido",
+            "url": "",
+        }
+    dgt_digitalizacion = DgtDigitalizacion.query.get(dgt_digitalizacion_id)
+    if dgt_digitalizacion is None:
+        return {
+            "success": False,
+            "message": "No se encontró la DGT Digitalización",
+            "url": "",
+        }
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha descargado {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"),
+        url=url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=dgt_digitalizacion.id),
+    )
+    bitacora.save()
+    return {
+        "success": True,
+        "message": "Entregada la URL de una digitalización para descargar",
+        "url": dgt_digitalizacion.archivo_url,
+    }
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/previsualizar_archivo_pdf/<dgt_digitalizacion_id>")
+def preview_file_pdf(dgt_digitalizacion_id):
+    """Previsualizar un archivo PDF"""
+    dgt_digitalizacion_id = safe_uuid(dgt_digitalizacion_id)
+    if dgt_digitalizacion_id == "":
+        raise BadRequest("ID de DGT Digitalización inválido")
+    dgt_digitalizacion = DgtDigitalizacion.query.get(dgt_digitalizacion_id)
+    if dgt_digitalizacion is None:
+        raise NotFound("DGT Digitalización no encontrada")
+    if dgt_digitalizacion.archivo_tamano is not None and dgt_digitalizacion.archivo_tamano > VISTA_PREVIA_PDF_MAX_SIZE_MB:
+        raise BadRequest("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=dgt_digitalizacion.dgt_ruta.dgt_deposito.clave.lower(),
+            blob_name=get_blob_name_from_url(dgt_digitalizacion.archivo_url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha previsualizado {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"),
+        url=url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=dgt_digitalizacion.id),
+    )
+    bitacora.save()
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    return response
+
+
+@dgt_digitalizaciones.route("/dgt_digitalizaciones/descargar_archivo_pdf/<dgt_digitalizacion_id>")
+def download_file_pdf(dgt_digitalizacion_id):
+    """Previsualizar un archivo PDF"""
+    dgt_digitalizacion_id = safe_uuid(dgt_digitalizacion_id)
+    if dgt_digitalizacion_id == "":
+        raise BadRequest("ID de DGT Digitalización inválido")
+    dgt_digitalizacion = DgtDigitalizacion.query.get(dgt_digitalizacion_id)
+    if dgt_digitalizacion is None:
+        raise NotFound("DGT Digitalización no encontrada")
+    if dgt_digitalizacion.archivo_tamano is not None and dgt_digitalizacion.archivo_tamano > VISTA_PREVIA_PDF_MAX_SIZE_MB:
+        raise BadRequest("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=dgt_digitalizacion.dgt_ruta.dgt_deposito.clave.lower(),
+            blob_name=get_blob_name_from_url(dgt_digitalizacion.archivo_url),
+        )
+    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+        raise NotFound("No se encontró el archivo.") from error
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename={dgt_digitalizacion.archivo}"
+    return response

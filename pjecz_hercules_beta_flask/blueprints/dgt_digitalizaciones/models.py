@@ -44,8 +44,8 @@ class DgtDigitalizacion(database.Model, UniversalMixin):
     descripcion: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Columnas con el último evento de la bitácora, actualizadas por un trigger
-    ultimo_evento: Mapped[Optional[str]] = mapped_column(String(24))
-    ultimo_evento_creado: Mapped[Optional[datetime]]
+    ultimo_evento: Mapped[str] = mapped_column(String(24))
+    ultimo_evento_creado: Mapped[datetime]
 
     # Hijos
     dgt_digitalizaciones_bitacoras: Mapped[list["DgtDigitalizacionBitacora"]] = relationship(back_populates="dgt_digitalizacion")
