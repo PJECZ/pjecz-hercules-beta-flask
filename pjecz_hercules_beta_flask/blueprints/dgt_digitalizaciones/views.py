@@ -20,7 +20,12 @@ from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
+from pjecz_hercules_beta_flask.lib.exceptions import (
+    MyBucketForbiddenError,
+    MyBucketNotFoundError,
+    MyFileNotFoundError,
+    MyNotValidParamError,
+)
 from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
@@ -43,7 +48,7 @@ def datatable_json():
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
-    consulta = DgtDigitalizacion.query
+    consulta = DgtDigitalizacion.query.join(Autoridad)  # Se requiere unir con Autoridad para ordenar por autoridad_clave
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
         consulta = consulta.filter_by(estatus=request.form["estatus"])
@@ -77,20 +82,16 @@ def datatable_json():
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
             consulta = consulta.filter(DgtDigitalizacion.ultimo_evento == ultimo_evento)
     # Luego filtrar por columnas de otras tablas
-    autoridad_unida = False
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
-                consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
-                autoridad_unida = True
+                consulta = consulta.filter(Autoridad.clave.contains(autoridad_clave))
         except ValueError:
             pass
     if "materia_id" in request.form:
         try:
             materia_id = int(request.form["materia_id"])
-            if not autoridad_unida:
-                consulta = consulta.join(Autoridad)
             consulta = consulta.filter(Autoridad.materia_id == materia_id)
         except ValueError:
             pass
@@ -98,7 +99,6 @@ def datatable_json():
     registros = consulta.order_by(
         DgtDigitalizacion.expediente_anio,
         DgtDigitalizacion.expediente_num,
-        DgtDigitalizacion.descripcion,
     ).offset(start).limit(rows_per_page).all()
     total = consulta.count()
     # Elaborar datos para DataTable
@@ -107,7 +107,7 @@ def datatable_json():
         data.append(
             {
                 "detalle": {
-                    "archivo_nombre": resultado.expediente,
+                    "expediente": resultado.expediente,
                     "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=resultado.id),
                 },
                 "autoridad_clave": resultado.autoridad.clave,
@@ -197,6 +197,7 @@ def detail(dgt_digitalizacion_id):
         dgt_digitalizacion=dgt_digitalizacion,
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         titulo=f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente} {dgt_digitalizacion.descripcion} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
+        vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
     )
 
 
@@ -385,7 +386,13 @@ def preview_file_pdf(dgt_digitalizacion_id):
             bucket_name=dgt_digitalizacion.dgt_ruta.dgt_deposito.clave.lower(),
             blob_name=get_blob_name_from_url(dgt_digitalizacion.archivo_url),
         )
-    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
         raise NotFound("No se encontró el archivo.") from error
     bitacora = Bitacora(
         modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -415,7 +422,13 @@ def download_file_pdf(dgt_digitalizacion_id):
             bucket_name=dgt_digitalizacion.dgt_ruta.dgt_deposito.clave.lower(),
             blob_name=get_blob_name_from_url(dgt_digitalizacion.archivo_url),
         )
-    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
         raise NotFound("No se encontró el archivo.") from error
     response = make_response(archivo)
     response.headers["Content-Type"] = "application/pdf"

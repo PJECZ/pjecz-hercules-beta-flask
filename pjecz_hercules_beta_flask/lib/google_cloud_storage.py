@@ -10,9 +10,10 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from google.cloud import storage
-from google.cloud.exceptions import NotFound
+from google.cloud.exceptions import Forbidden, NotFound
 
 from pjecz_hercules_beta_flask.lib.exceptions import (
+    MyBucketForbiddenError,
     MyBucketNotFoundError,
     MyFileNotAllowedError,
     MyFileNotFoundError,
@@ -49,6 +50,8 @@ def check_file_exists_from_gcs(
     storage_client = storage.Client()
     try:
         bucket = storage_client.get_bucket(bucket_name)
+    except Forbidden as error:
+        raise MyBucketForbiddenError("No permission to access bucket") from error
     except NotFound as error:
         raise MyBucketNotFoundError("Bucket not found") from error
 
@@ -76,6 +79,8 @@ def delete_file_from_gcs(
     storage_client = storage.Client()
     try:
         bucket = storage_client.get_bucket(bucket_name)
+    except Forbidden as error:
+        raise MyBucketForbiddenError("No permission to access bucket") from error
     except NotFound as error:
         raise MyBucketNotFoundError("Bucket not found") from error
 
@@ -128,6 +133,8 @@ def get_file_from_gcs(
     storage_client = storage.Client()
     try:
         bucket = storage_client.get_bucket(bucket_name)
+    except Forbidden as error:
+        raise MyBucketForbiddenError("No permission to access bucket") from error
     except NotFound as error:
         raise MyBucketNotFoundError("Bucket not found") from error
 
@@ -177,6 +184,8 @@ def get_public_url_from_gcs(
     storage_client = storage.Client()
     try:
         bucket = storage_client.get_bucket(bucket_name)
+    except Forbidden as error:
+        raise MyBucketForbiddenError("No permission to access bucket") from error
     except NotFound as error:
         raise MyBucketNotFoundError("Bucket not found") from error
 
@@ -207,6 +216,8 @@ def get_signed_url_from_gcs(
     storage_client = storage.Client()
     try:
         bucket = storage_client.get_bucket(bucket_name)
+    except Forbidden as error:
+        raise MyBucketForbiddenError("No permission to access bucket") from error
     except NotFound as error:
         raise MyBucketNotFoundError("El depósito no existe") from error
 

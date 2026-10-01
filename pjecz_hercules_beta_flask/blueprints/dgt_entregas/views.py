@@ -20,7 +20,12 @@ from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.exceptions import MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError
+from pjecz_hercules_beta_flask.lib.exceptions import (
+    MyBucketForbiddenError,
+    MyBucketNotFoundError,
+    MyFileNotFoundError,
+    MyNotValidParamError,
+)
 from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
@@ -391,7 +396,13 @@ def preview_file_pdf(dgt_entrega_id):
             bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
             blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
         )
-    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
         raise NotFound("No se encontró el archivo.") from error
     bitacora = Bitacora(
         modulo=Modulo.query.filter_by(nombre=MODULO).first(),
@@ -421,7 +432,13 @@ def download_file_pdf(dgt_entrega_id):
             bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
             blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
         )
-    except (MyBucketNotFoundError, MyFileNotFoundError, MyNotValidParamError) as error:
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
         raise NotFound("No se encontró el archivo.") from error
     response = make_response(archivo)
     response.headers["Content-Type"] = "application/pdf"

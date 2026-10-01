@@ -14,6 +14,14 @@
 
 {% block content %}
     {% set ultimo_evento_badges = {'CREADO': 'bg-success', 'ELIMINADO': 'bg-danger', 'MODIFICADO': 'bg-warning text-dark'} %}
+    {% set tamano = dgt_entrega.archivo_tamano %}
+    {% if tamano >= 1048576 %}
+        {% set tamano_legible = '%.2f MB' | format(tamano / 1048576) %}
+    {% elif tamano >= 1024 %}
+        {% set tamano_legible = '%.2f KB' | format(tamano / 1024) %}
+    {% else %}
+        {% set tamano_legible = tamano | string + ' bytes' %}
+    {% endif %}
     {% call detail.card(estatus=dgt_entrega.estatus) %}
         <div class="row">
             {{ detail.label_value('Archivo', dgt_entrega.archivo_nombre) }}
@@ -39,7 +47,7 @@
             {{ detail.label_value('URL del archivo', dgt_entrega.archivo_url) }}
             {{ detail.label_value('MD5', dgt_entrega.archivo_md5) }}
             {{ detail.label_value('CRC32C', dgt_entrega.archivo_crc32c) }}
-            {{ detail.label_value('Tamaño (bytes)', dgt_entrega.archivo_tamano) }}
+            {{ detail.label_value('Tamaño', tamano_legible) }}
             {{ detail.label_value('Actualizado', dgt_entrega.archivo_actualizado.strftime('%Y-%m-%d %H:%M') if dgt_entrega.archivo_actualizado else '') }}
             {{ detail.label_value('UUID (en DGT Digitalizaciones)', dgt_entrega.archivo_uuid) }}
         </div>
@@ -49,14 +57,6 @@
             <a href="" class="w-100 btn btn-lg btn-success my-2" id="downloadPDFButton" target="_blank" style="display: none;">
                 <span class="mdi mdi-download"></span>
                 Descargar archivo
-                {% set tamano = dgt_entrega.archivo_tamano %}
-                {% if tamano >= 1048576 %}
-                    {% set tamano_legible = '%.2f MB' | format(tamano / 1048576) %}
-                {% elif tamano >= 1024 %}
-                    {% set tamano_legible = '%.2f KB' | format(tamano / 1024) %}
-                {% else %}
-                    {% set tamano_legible = tamano | string + ' bytes' %}
-                {% endif %}
                 {{ tamano_legible }}
             </a>
             <div class="alert alert-danger" role="alert" id="downloadPDFError" style="display: none;">
