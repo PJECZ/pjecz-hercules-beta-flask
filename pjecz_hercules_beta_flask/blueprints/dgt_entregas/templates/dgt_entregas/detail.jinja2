@@ -45,6 +45,7 @@
             {{ detail.label_value('Número del expediente', dgt_entrega.expediente_num) }}
             {{ detail.label_value('Descripción', dgt_entrega.descripcion) }}
             {{ detail.label_value('URL del archivo', dgt_entrega.archivo_url) }}
+            {{ detail.label_value('URL pública', dgt_entrega.archivo_url) }}
             {{ detail.label_value('MD5', dgt_entrega.archivo_md5) }}
             {{ detail.label_value('CRC32C', dgt_entrega.archivo_crc32c) }}
             {{ detail.label_value('Tamaño', tamano_legible) }}
@@ -55,9 +56,7 @@
     {% call detail.card() %}
         {% if dgt_entrega.archivo_tamano is not none and dgt_entrega.archivo_tamano > vista_previa_pdf_max_size_mb %}
             <a href="" class="w-100 btn btn-lg btn-success my-2" id="downloadPDFButton" target="_blank" style="display: none;">
-                <span class="mdi mdi-download"></span>
-                Descargar archivo
-                {{ tamano_legible }}
+                <span class="mdi mdi-download"></span> Descargar archivo {{ tamano_legible }}
             </a>
             <div class="alert alert-danger" role="alert" id="downloadPDFError" style="display: none;">
                 No se pudo obtener el enlace para descargar el archivo PDF.
@@ -73,27 +72,26 @@
 {% block custom_javascript %}
     {% if dgt_entrega.archivo_tamano is not none and dgt_entrega.archivo_tamano > vista_previa_pdf_max_size_mb %}
         <script>
-        // Cuando el PDF es mayor de vista_previa_pdf_max_size_mb, se muestra un botón para descargarlo en lugar de la vista previa
-        downloadPDFButton = document.getElementById('downloadPDFButton');
-        downloadPDFError = document.getElementById('downloadPDFError');
-        // Llamar a la vista dgt_entregas.get_url_for_download_json que entrega un JSON con success, message y el url,
-        fetch('{{ url_for('dgt_entregas.get_url_for_download_json', dgt_entrega_id=dgt_entrega.id) }}')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Habilitar el botón para descargar el PDF y se cambia su atributo href con la URL obtenida,
-                    downloadPDFButton.setAttribute('href', data.url);
-                    downloadPDFButton.style.display = 'block';
-                } else {
-                    // Mostrar mensaje de error
+            // Obtener la URL pública del archivo PDF para habilitar el botón de descarga
+            downloadPDFButton = document.getElementById('downloadPDFButton');
+            downloadPDFError = document.getElementById('downloadPDFError');
+            fetch('{{ url_for('dgt_entregas.get_file_public_url_json', dgt_entrega_id=dgt_entrega.id) }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Habilitar el botón para descargar el PDF y se cambia su atributo href con la URL obtenida,
+                        downloadPDFButton.setAttribute('href', data.url);
+                        downloadPDFButton.style.display = 'block';
+                    } else {
+                        // Mostrar mensaje de error
+                        downloadPDFError.style.display = 'block';
+                        downloadPDFError.textContent = data.message || 'No se pudo obtener el enlace para descargar el archivo PDF.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al obtener la URL del PDF:', error);
                     downloadPDFError.style.display = 'block';
-                    downloadPDFError.textContent = data.message || 'No se pudo obtener el enlace para descargar el archivo PDF.';
-                }
-            })
-            .catch(error => {
-                console.error('Error al obtener la URL del PDF:', error);
-                downloadPDFError.style.display = 'block';
-            });
-        </script>
+                });
+            </script>
     {% endif %}
 {% endblock %}

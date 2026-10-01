@@ -350,8 +350,8 @@ def dashboard_por_archivo_actualizado():
 
 
 @dgt_entregas.route("/dgt_entregas/obtener_url_para_descargar/<dgt_entrega_id>")
-def get_url_for_download_json(dgt_entrega_id):
-    """Obtener la URL de un archivo para descargar"""
+def get_file_public_url_json(dgt_entrega_id):
+    """Obtener la URL pública de un archivo"""
     dgt_entrega_id = safe_uuid(dgt_entrega_id)
     if dgt_entrega_id == "":
         return {
@@ -375,8 +375,8 @@ def get_url_for_download_json(dgt_entrega_id):
     bitacora.save()
     return {
         "success": True,
-        "message": "Entregada la URL de una entrega para descargar",
-        "url": dgt_entrega.archivo_url,
+        "message": "Entregada la URL pública de un archivo de DGT Entrega",
+        "url": dgt_entrega.archivo_public_url,
     }
 
 

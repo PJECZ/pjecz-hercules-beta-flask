@@ -31,7 +31,8 @@ class DgtDigitalizacion(database.Model, UniversalMixin):
 
     # Columnas con datos del archivo en el depósito
     archivo_nombre: Mapped[str] = mapped_column(String(256))
-    archivo_url: Mapped[str] = mapped_column(String(512))
+    archivo_url: Mapped[str] = mapped_column(String(1024))
+    archivo_public_url: Mapped[str] = mapped_column(String(1024))
     archivo_md5: Mapped[str] = mapped_column(String(32))
     archivo_crc32c: Mapped[str] = mapped_column(String(8))
     archivo_actualizado: Mapped[datetime]

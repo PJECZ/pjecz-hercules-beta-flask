@@ -7,13 +7,15 @@ from datetime import date, timedelta
 
 from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import Date, cast, func
+from sqlalchemy import Date, cast, func, select
 from werkzeug.exceptions import BadRequest, NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones.models import DgtDigitalizacion
 from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones_bitacoras.models import DgtDigitalizacionBitacora
+from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
@@ -48,75 +50,88 @@ def datatable_json():
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
-    consulta = DgtDigitalizacion.query.join(Autoridad)  # Se requiere unir con Autoridad para ordenar por autoridad_clave
+    consulta = select(
+        DgtDigitalizacion.id,
+        DgtDigitalizacion.expediente,
+        Autoridad.clave.label("autoridad_clave"),
+        DgtDigitalizacion.descripcion,
+        DgtTipo.clave.label("dgt_tipo_clave"),
+        DgtDigitalizacion.archivo_actualizado,
+        DgtDigitalizacion.ultimo_evento,
+        DgtDigitalizacion.ultimo_evento_creado,
+        DgtDigitalizacion.expediente_anio,
+        DgtDigitalizacion.expediente_num,
+    ).join(Autoridad).join(DgtRuta).join(DgtTipo)
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
-        consulta = consulta.filter_by(estatus=request.form["estatus"])
+        consulta = consulta.where(DgtDigitalizacion.estatus == request.form["estatus"])
     else:
-        consulta = consulta.filter_by(estatus="A")
+        consulta = consulta.where(DgtDigitalizacion.estatus == "A")
     if "expediente" in request.form:
         expediente = safe_string(request.form["expediente"])
         if expediente != "":
-            consulta = consulta.filter(DgtDigitalizacion.expediente.contains(expediente))
+            consulta = consulta.where(DgtDigitalizacion.expediente.contains(expediente))
     if "descripcion" in request.form:
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
-            consulta = consulta.filter(DgtDigitalizacion.descripcion.contains(descripcion))
+            consulta = consulta.where(DgtDigitalizacion.descripcion.contains(descripcion))
     if "dgt_ruta_id" in request.form:
-        consulta = consulta.filter(DgtDigitalizacion.dgt_ruta_id == request.form["dgt_ruta_id"])
+        consulta = consulta.where(DgtDigitalizacion.dgt_ruta_id == request.form["dgt_ruta_id"])
     if "expediente_anio" in request.form:
         try:
             expediente_anio = int(request.form["expediente_anio"])
-            consulta = consulta.filter(DgtDigitalizacion.expediente_anio == expediente_anio)
+            consulta = consulta.where(DgtDigitalizacion.expediente_anio == expediente_anio)
         except ValueError:
             pass
     if "archivo_actualizado" in request.form:
         try:
             archivo_actualizado = date.fromisoformat(request.form["archivo_actualizado"])
-            consulta = consulta.filter(DgtDigitalizacion.archivo_actualizado >= archivo_actualizado)
-            consulta = consulta.filter(DgtDigitalizacion.archivo_actualizado < archivo_actualizado + timedelta(days=1))
+            consulta = consulta.where(DgtDigitalizacion.archivo_actualizado >= archivo_actualizado)
+            consulta = consulta.where(DgtDigitalizacion.archivo_actualizado < archivo_actualizado + timedelta(days=1))
         except ValueError:
             pass
     if "ultimo_evento" in request.form:
         ultimo_evento = safe_string(request.form["ultimo_evento"])
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
-            consulta = consulta.filter(DgtDigitalizacion.ultimo_evento == ultimo_evento)
+            consulta = consulta.where(DgtDigitalizacion.ultimo_evento == ultimo_evento)
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
-                consulta = consulta.filter(Autoridad.clave.contains(autoridad_clave))
+                consulta = consulta.where(Autoridad.clave.contains(autoridad_clave))
         except ValueError:
             pass
     if "materia_id" in request.form:
         try:
             materia_id = int(request.form["materia_id"])
-            consulta = consulta.filter(Autoridad.materia_id == materia_id)
+            consulta = consulta.where(Autoridad.materia_id == materia_id)
         except ValueError:
             pass
     # Ordenar y paginar
-    registros = consulta.order_by(
-        DgtDigitalizacion.expediente_anio,
-        DgtDigitalizacion.expediente_num,
-    ).offset(start).limit(rows_per_page).all()
-    total = consulta.count()
+    total = database.session.execute(select(func.count()).select_from(consulta.subquery())).scalar()
+    consulta = (
+        consulta.order_by(DgtDigitalizacion.expediente_anio, DgtDigitalizacion.expediente_num)
+        .offset(start)
+        .limit(rows_per_page)
+    )
+    registros = database.session.execute(consulta)
     # Elaborar datos para DataTable
     data = []
-    for resultado in registros:
+    for item in registros:
         data.append(
             {
                 "detalle": {
-                    "expediente": resultado.expediente,
-                    "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=resultado.id),
+                    "expediente": item.expediente,
+                    "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=item.id),
                 },
-                "autoridad_clave": resultado.autoridad.clave,
-                "descripcion": resultado.descripcion,
-                "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
-                "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if resultado.archivo_actualizado else "",
+                "autoridad_clave": item.autoridad_clave,
+                "descripcion": item.descripcion,
+                "dgt_tipo_clave": item.dgt_tipo_clave,
+                "archivo_actualizado": item.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if item.archivo_actualizado else "",
                 "ultimo_evento": {
-                    "evento": resultado.ultimo_evento,
-                    "creado": resultado.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if resultado.ultimo_evento_creado else "",
+                    "evento": item.ultimo_evento,
+                    "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
                 },
             }
         )
@@ -340,8 +355,8 @@ def dashboard_por_archivo_actualizado():
 
 
 @dgt_digitalizaciones.route("/dgt_digitalizaciones/obtener_url_para_descargar/<dgt_digitalizacion_id>")
-def get_url_for_download_json(dgt_digitalizacion_id):
-    """Obtener la URL de un archivo para descargar"""
+def get_file_public_url_json(dgt_digitalizacion_id):
+    """Obtener la URL pública de un archivo"""
     dgt_digitalizacion_id = safe_uuid(dgt_digitalizacion_id)
     if dgt_digitalizacion_id == "":
         return {
@@ -365,8 +380,8 @@ def get_url_for_download_json(dgt_digitalizacion_id):
     bitacora.save()
     return {
         "success": True,
-        "message": "Entregada la URL de una digitalización para descargar",
-        "url": dgt_digitalizacion.archivo_url,
+        "message": "Entregada la URL pública de un archivo de DGT Digitalización",
+        "url": dgt_digitalizacion.archivo_public_url,
     }
 
 
