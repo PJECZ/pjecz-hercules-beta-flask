@@ -6,7 +6,8 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {{ topbar.button_dashboard('Tablero', url_for('dgt_digitalizaciones.dashboard')) }}
+        {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_digitalizaciones.dashboard_por_expediente_anio')) }}
+        {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_digitalizaciones.dashboard_por_archivo_actualizado')) }}
         {% if current_user.can_admin('DGT DIGITALIZACIONES') %}
             {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_digitalizaciones.list_inactive')) }}{% endif %}
             {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_digitalizaciones.list_active')) }}{% endif %}
@@ -32,10 +33,21 @@
                             <label for="filtroDgtDigitalizacionExpediente">Expediente</label>
                         </div>
                     </div>
-                    <div class="col-4">
+                    <div class="col-2">
                         <div class="form-floating">
                             <input id="filtroDgtDigitalizacionDescripcion" type="text" class="form-control" aria-label="Descripción" style="text-transform: uppercase;">
                             <label for="filtroDgtDigitalizacionDescripcion">Descripción</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <select id="filtroDgtDigitalizacionUltimoEvento" class="form-select" aria-label="Último evento" onchange="filtrosDgtDigitalizaciones.buscar();">
+                                <option value=""></option>
+                                {% for clave, descripcion in eventos.items() %}
+                                    <option value="{{ clave }}" {% if clave == ultimo_evento %}selected{% endif %}>{{ descripcion }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="filtroDgtDigitalizacionUltimoEvento">Último evento</label>
                         </div>
                     </div>
                     <div class="col-4 text-end">
@@ -49,10 +61,10 @@
         <table id="dgt_digitalizaciones_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
             <thead>
                 <tr>
-                    <th>Archivo</th>
-                    <th>Autoridad</th>
                     <th>Expediente</th>
+                    <th>Autoridad</th>
                     <th>Descripción</th>
+                    <th>Tipo</th>
                     <th>Actualizado</th>
                     <th>Último evento</th>
                 </tr>
@@ -73,8 +85,8 @@
         configDTDgtDigitalizaciones['columns'] = [
             { data: 'detalle' },
             { data: 'autoridad_clave' },
-            { data: 'expediente' },
             { data: 'descripcion' },
+            { data: 'dgt_tipo_clave' },
             { data: 'archivo_actualizado' },
             { data: 'ultimo_evento' }
         ];
@@ -83,7 +95,7 @@
                 targets: 0, // detalle
                 data: null,
                 render: function(data, type, row, meta) {
-                    return '<a href="' + data.url + '">' + data.archivo_nombre + '</a>';
+                    return '<a href="' + data.url + '">' + data.expediente + '</a>';
                 }
             },
             {
@@ -100,9 +112,6 @@
                         case 'MODIFICADO': bgcolor = 'bg-warning text-dark'; break;
                     }
                     let html = '<span class="badge ' + bgcolor + '">' + data.evento + '</span>';
-                    // if (data.creado) {
-                    //     html += ' <small>' + data.creado + '</small>';
-                    // }
                     return html;
                 }
             }
@@ -112,6 +121,7 @@
         filtrosDgtDigitalizaciones.agregarInput('filtroDgtDigitalizacionAutoridadClave', 'autoridad_clave');
         filtrosDgtDigitalizaciones.agregarInput('filtroDgtDigitalizacionExpediente', 'expediente');
         filtrosDgtDigitalizaciones.agregarInput('filtroDgtDigitalizacionDescripcion', 'descripcion');
+        filtrosDgtDigitalizaciones.agregarSelect('filtroDgtDigitalizacionUltimoEvento', 'ultimo_evento');
         filtrosDgtDigitalizaciones.precargar();
     </script>
 {% endblock %}

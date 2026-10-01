@@ -31,21 +31,22 @@ class DgtEntrega(database.Model, UniversalMixin):
 
     # Columnas con datos del archivo en el depósito
     archivo_nombre: Mapped[str] = mapped_column(String(256))
-    archivo_url: Mapped[str] = mapped_column(String(512))
+    archivo_url: Mapped[str] = mapped_column(String(1024))
+    archivo_public_url: Mapped[str] = mapped_column(String(1024))
     archivo_md5: Mapped[str] = mapped_column(String(32))
     archivo_crc32c: Mapped[str] = mapped_column(String(8))
     archivo_actualizado: Mapped[datetime]
     archivo_tamano: Mapped[int]
 
     # Columnas de control
-    expediente: Mapped[Optional[str]] = mapped_column(String(16))
-    expediente_anio: Mapped[Optional[int]]
-    expediente_num: Mapped[Optional[int]]
+    expediente: Mapped[str] = mapped_column(String(16))
+    expediente_anio: Mapped[int]
+    expediente_num: Mapped[int]
     descripcion: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Columnas con el último evento de la bitácora, actualizadas por un trigger
-    ultimo_evento: Mapped[Optional[str]] = mapped_column(String(24))
-    ultimo_evento_creado: Mapped[Optional[datetime]]
+    ultimo_evento: Mapped[str] = mapped_column(String(24))
+    ultimo_evento_creado: Mapped[datetime]
 
     # Columnas que se define cuando hay una copia en otra tabla
     archivo_uuid: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True))  # Ya fue entregado a dgt_digitalizaciones

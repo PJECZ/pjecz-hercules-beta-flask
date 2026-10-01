@@ -7,10 +7,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block title %}DGT Entregas por año del expediente{% endblock %}
+{% block title %}Entregas por año del expediente{% endblock %}
 
 {% block topbar_actions %}
-    {% call topbar.page_buttons('DGT Entregas por año del expediente') %}
+    {% call topbar.page_buttons('Entregas por año del expediente') %}
         {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_entregas.dashboard_por_archivo_actualizado')) }}
         {{ topbar.button_previous('Entregas', url_for('dgt_entregas.list_active')) }}
     {% endcall %}

@@ -5,21 +5,32 @@ DGT Entregas, vistas
 import json
 from datetime import date, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 from sqlalchemy import Date, cast, func
+from werkzeug.exceptions import BadRequest, NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas.models import DgtEntrega
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.models import DgtEntregaBitacora
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
+from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_string, safe_uuid
+from pjecz_hercules_beta_flask.lib.exceptions import (
+    MyBucketForbiddenError,
+    MyBucketNotFoundError,
+    MyFileNotFoundError,
+    MyNotValidParamError,
+)
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
+from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "DGT ENTREGAS"
+VISTA_PREVIA_PDF_MAX_SIZE_MB = 30 * 1024 * 1024  # 30 MB
 
 dgt_entregas = Blueprint("dgt_entregas", __name__, template_folder="templates")
 
@@ -122,12 +133,12 @@ def datatable_json():
 def list_active():
     """Listado de DGT Entregas activas"""
     filtros = {"estatus": "A"}
-    titulo = "DGT Entregas"
+    titulo = "Entregas"
     # Si viene el año del expediente, filtrar por éste
     if "expediente_anio" in request.args:
         try:
             expediente_anio = int(request.args["expediente_anio"])
-            filtros["expediente_anio"] = expediente_anio
+            filtros["expediente_anio"] = str(expediente_anio)
             titulo = f"{titulo} del año {expediente_anio}"
         except (KeyError, ValueError):
             pass
@@ -176,7 +187,7 @@ def list_inactive():
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps({"estatus": "B"}),
-        titulo="DGT Entregas inactivas",
+        titulo="Entregas inactivas",
         estatus="B",
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento="",
@@ -192,14 +203,19 @@ def detail(dgt_entrega_id):
         flash("ID de DGT Entrega inválido", "warning")
         return redirect(url_for("dgt_entregas.list_active"))
     dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
-    return render_template("dgt_entregas/detail.jinja2", dgt_entrega=dgt_entrega)
+    return render_template(
+        "dgt_entregas/detail.jinja2",
+        dgt_entrega=dgt_entrega,
+        titulo=f"Entrega {dgt_entrega.autoridad.clave} {dgt_entrega.expediente} {dgt_entrega.descripcion} {dgt_entrega.dgt_ruta.dgt_tipo.clave}",
+        vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
+    )
 
 
 @dgt_entregas.route("/dgt_entregas/obtener_totales_por_expediente_anio")
 def get_totales_por_expediente_anio_json():
     """Obtener los totales de DGT Entregas por materia y por año en JSON"""
 
-    # Consultar los totales (copiados, enviados) por materia por año
+    # Consultar los totales por materia por año
     consulta = (
         database.session.query(
             Materia.id.label("materia_id"),
@@ -331,3 +347,100 @@ def dashboard_por_expediente_anio():
 def dashboard_por_archivo_actualizado():
     """Tablero de DGT Entregas por archivo actualizado"""
     return render_template("dgt_entregas/dashboard_por_archivo_actualizado.jinja2")
+
+
+@dgt_entregas.route("/dgt_entregas/obtener_url_para_descargar/<dgt_entrega_id>")
+def get_file_public_url_json(dgt_entrega_id):
+    """Obtener la URL pública de un archivo"""
+    dgt_entrega_id = safe_uuid(dgt_entrega_id)
+    if dgt_entrega_id == "":
+        return {
+            "success": False,
+            "message": "ID de DGT Entrega inválido",
+            "url": "",
+        }
+    dgt_entrega = DgtEntrega.query.get(dgt_entrega_id)
+    if dgt_entrega is None:
+        return {
+            "success": False,
+            "message": "No se encontró la DGT Entrega",
+            "url": "",
+        }
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha descargado {dgt_entrega.autoridad.clave} {dgt_entrega.expediente}"),
+        url=url_for("dgt_entregas.detail", dgt_entrega_id=dgt_entrega.id),
+    )
+    bitacora.save()
+    return {
+        "success": True,
+        "message": "Entregada la URL pública de un archivo de DGT Entrega",
+        "url": dgt_entrega.archivo_public_url,
+    }
+
+
+@dgt_entregas.route("/dgt_entregas/previsualizar_archivo_pdf/<dgt_entrega_id>")
+def preview_file_pdf(dgt_entrega_id):
+    """Previsualizar un archivo PDF"""
+    dgt_entrega_id = safe_uuid(dgt_entrega_id)
+    if dgt_entrega_id == "":
+        raise BadRequest("ID de DGT Entrega inválido")
+    dgt_entrega = DgtEntrega.query.get(dgt_entrega_id)
+    if dgt_entrega is None:
+        raise NotFound("DGT Entrega no encontrada")
+    if dgt_entrega.archivo_tamano is not None and dgt_entrega.archivo_tamano > VISTA_PREVIA_PDF_MAX_SIZE_MB:
+        raise BadRequest("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
+            blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
+        )
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
+        raise NotFound("No se encontró el archivo.") from error
+    bitacora = Bitacora(
+        modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+        usuario=current_user,
+        descripcion=safe_message(f"Se ha previsualizado {dgt_entrega.autoridad.clave} {dgt_entrega.expediente}"),
+        url=url_for("dgt_entregas.detail", dgt_entrega_id=dgt_entrega.id),
+    )
+    bitacora.save()
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    return response
+
+
+@dgt_entregas.route("/dgt_entregas/descargar_archivo_pdf/<dgt_entrega_id>")
+def download_file_pdf(dgt_entrega_id):
+    """Previsualizar un archivo PDF"""
+    dgt_entrega_id = safe_uuid(dgt_entrega_id)
+    if dgt_entrega_id == "":
+        raise BadRequest("ID de DGT Entrega inválido")
+    dgt_entrega = DgtEntrega.query.get(dgt_entrega_id)
+    if dgt_entrega is None:
+        raise NotFound("DGT Entrega no encontrada")
+    if dgt_entrega.archivo_tamano is not None and dgt_entrega.archivo_tamano > VISTA_PREVIA_PDF_MAX_SIZE_MB:
+        raise BadRequest("El archivo es demasiado grande para previsualizarlo.")
+    try:
+        archivo = get_file_from_gcs(
+            bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
+            blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
+        )
+    except MyBucketForbiddenError as error:
+        raise BadRequest("No se tiene permiso para acceder al depósito.") from error
+    except MyNotValidParamError as error:
+        raise BadRequest("Parámetro no válido para acceder al archivo.") from error
+    except MyBucketNotFoundError as error:
+        raise NotFound("No se encontró el depósito.") from error
+    except MyFileNotFoundError as error:
+        raise NotFound("No se encontró el archivo.") from error
+    response = make_response(archivo)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename={dgt_entrega.archivo}"
+    return response

@@ -7,12 +7,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block title %}Entregas por archivo actualizado{% endblock %}
+{% block title %}Digitalizaciones por archivo actualizado{% endblock %}
 
 {% block topbar_actions %}
-    {% call topbar.page_buttons('Entregas por archivo actualizado') %}
-        {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_entregas.dashboard_por_expediente_anio')) }}
-        {{ topbar.button_previous('Entregas', url_for('dgt_entregas.list_active')) }}
+    {% call topbar.page_buttons('Digitalizaciones por archivo actualizado') %}
+        {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_digitalizaciones.dashboard_por_expediente_anio')) }}
+        {{ topbar.button_previous('Digitalizaciones', url_for('dgt_digitalizaciones.list_active')) }}
     {% endcall %}
 {% endblock %}
 
@@ -37,8 +37,8 @@
 
 {% block custom_javascript %}
     <script>
-      const totalesUrl = "{{ url_for('dgt_entregas.get_totales_por_materia_por_archivo_actualizado_json') }}";
-      const listActiveUrl = "{{ url_for('dgt_entregas.list_active') }}";
+      const totalesUrl = "{{ url_for('dgt_digitalizaciones.get_totales_por_materia_por_archivo_actualizado_json') }}";
+      const listActiveUrl = "{{ url_for('dgt_digitalizaciones.list_active') }}";
 
       // Colores para cada materia en el gráfico
       const colores = [
@@ -135,7 +135,7 @@
                 responsive: true,
                 interaction: { mode: "index", intersect: false },
                 plugins: {
-                  title: { display: true, text: "Entregas por materia y fecha de archivo actualizado" },
+                  title: { display: true, text: "Digitalizaciones por materia y fecha de archivo actualizado" },
                 },
                 scales: {
                   x: { title: { display: true, text: "Fecha" } },
@@ -192,7 +192,7 @@
               },
             });
           })
-          .catch((error) => console.error("Error al cargar el dashboard:", error));
+          .catch((error) => console.error("Error al cargar el tablero:", error));
       }
 
       // Botones para cambiar el periodo
