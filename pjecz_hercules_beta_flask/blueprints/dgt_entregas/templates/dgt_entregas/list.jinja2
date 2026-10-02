@@ -73,6 +73,7 @@
                     <th>Descripción</th>
                     <th>Tipo</th>
                     <th>Actualizado</th>
+                    <th>Tamaño</th>
                     <th>Último evento</th>
                     <th>UUID</th>
                 </tr>
@@ -92,13 +93,14 @@
         configDTDgtEntregas['ajax']['data'] = {{ filtros }};
         configDTDgtEntregas['columns'] = [
             { data: 'detalle' },
-            { data: 'autoridad_clave' },
-            { data: 'expediente' },
-            { data: 'descripcion' },
-            { data: 'dgt_tipo_clave' },
+            { data: 'autoridad_clave', className: 'dt-center' },
+            { data: 'expediente', className: 'dt-right' },
+            { data: 'descripcion', className: 'dt-left' },
+            { data: 'dgt_tipo_clave', className: 'dt-center' },
             { data: 'archivo_actualizado' },
-            { data: 'ultimo_evento' },
-            { data: 'archivo_uuid' }
+            { data: 'archivo_tamano', className: 'dt-right' },
+            { data: 'ultimo_evento', className: 'dt-center' },
+            { data: 'archivo_uuid', className: 'dt-center' }
         ];
         configDTDgtEntregas['columnDefs'] = [
             {
@@ -109,7 +111,24 @@
                 }
             },
             {
-                targets: 6, // ultimo_evento
+                targets: 6, // archivo_tamano
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let size = data;
+                    let units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    let unitIndex = 0;
+                    while (size >= 1024 && unitIndex < units.length - 1) {
+                        size /= 1024;
+                        unitIndex++;
+                    }
+                    return size.toFixed(2) + ' ' + units[unitIndex];
+                }
+            },
+            {
+                targets: 7, // ultimo_evento
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data.evento) {
@@ -126,7 +145,7 @@
                 }
             },
             {
-                targets: 7, // archivo_uuid
+                targets: 8, // archivo_uuid
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data) {

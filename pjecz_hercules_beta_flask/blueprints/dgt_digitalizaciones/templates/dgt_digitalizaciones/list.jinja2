@@ -66,6 +66,7 @@
                     <th>Descripción</th>
                     <th>Tipo</th>
                     <th>Actualizado</th>
+                    <th>Tamaño</th>
                     <th>Último evento</th>
                 </tr>
             </thead>
@@ -83,12 +84,13 @@
         configDTDgtDigitalizaciones['ajax']['url'] = "{{ url_for('dgt_digitalizaciones.datatable_json') }}";
         configDTDgtDigitalizaciones['ajax']['data'] = {{ filtros }};
         configDTDgtDigitalizaciones['columns'] = [
-            { data: 'detalle' },
-            { data: 'autoridad_clave' },
-            { data: 'descripcion' },
-            { data: 'dgt_tipo_clave' },
+            { data: 'detalle', className: 'dt-right' },
+            { data: 'autoridad_clave', className: 'dt-center' },
+            { data: 'descripcion', className: 'dt-left' },
+            { data: 'dgt_tipo_clave', className: 'dt-center' },
             { data: 'archivo_actualizado' },
-            { data: 'ultimo_evento' }
+            { data: 'archivo_tamano', className: 'dt-right' },
+            { data: 'ultimo_evento', className: 'dt-center' }
         ];
         configDTDgtDigitalizaciones['columnDefs'] = [
             {
@@ -99,7 +101,24 @@
                 }
             },
             {
-                targets: 5, // ultimo_evento
+                targets: 5, // archivo_tamano
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let size = data;
+                    let units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    let unitIndex = 0;
+                    while (size >= 1024 && unitIndex < units.length - 1) {
+                        size /= 1024;
+                        unitIndex++;
+                    }
+                    return size.toFixed(2) + ' ' + units[unitIndex];
+                }
+            },
+            {
+                targets: 6, // ultimo_evento
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data.evento) {

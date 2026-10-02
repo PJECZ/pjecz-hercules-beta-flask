@@ -51,16 +51,17 @@ def datatable_json():
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
     consulta = select(
-        DgtDigitalizacion.id,
-        DgtDigitalizacion.expediente,
         Autoridad.clave.label("autoridad_clave"),
-        DgtDigitalizacion.descripcion,
-        DgtTipo.clave.label("dgt_tipo_clave"),
+        DgtDigitalizacion.id,
         DgtDigitalizacion.archivo_actualizado,
-        DgtDigitalizacion.ultimo_evento,
-        DgtDigitalizacion.ultimo_evento_creado,
+        DgtDigitalizacion.archivo_tamano,
+        DgtDigitalizacion.expediente,
         DgtDigitalizacion.expediente_anio,
         DgtDigitalizacion.expediente_num,
+        DgtDigitalizacion.descripcion,
+        DgtDigitalizacion.ultimo_evento,
+        DgtDigitalizacion.ultimo_evento_creado,
+        DgtTipo.clave.label("dgt_tipo_clave"),
     ).join(Autoridad).join(DgtRuta).join(DgtTipo)
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
@@ -70,7 +71,7 @@ def datatable_json():
     if "expediente" in request.form:
         expediente = safe_string(request.form["expediente"])
         if expediente != "":
-            consulta = consulta.where(DgtDigitalizacion.expediente.contains(expediente))
+            consulta = consulta.where(DgtDigitalizacion.expediente == expediente)
     if "descripcion" in request.form:
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
@@ -99,7 +100,7 @@ def datatable_json():
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
-                consulta = consulta.where(Autoridad.clave.contains(autoridad_clave))
+                consulta = consulta.where(Autoridad.clave == autoridad_clave)
         except ValueError:
             pass
     if "materia_id" in request.form:
@@ -111,24 +112,26 @@ def datatable_json():
     # Ordenar y paginar
     total = database.session.execute(select(func.count()).select_from(consulta.subquery())).scalar()
     consulta = (
-        consulta.order_by(DgtDigitalizacion.expediente_anio, DgtDigitalizacion.expediente_num)
-        .offset(start)
-        .limit(rows_per_page)
+        consulta.order_by(
+            DgtDigitalizacion.expediente_anio,
+            DgtDigitalizacion.expediente_num,
+            DgtDigitalizacion.descripcion,
+        ).offset(start).limit(rows_per_page)
     )
-    registros = database.session.execute(consulta)
     # Elaborar datos para DataTable
     data = []
-    for item in registros:
+    for item in database.session.execute(consulta):
         data.append(
             {
+                "autoridad_clave": item.autoridad_clave,
                 "detalle": {
                     "expediente": item.expediente,
                     "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=item.id),
                 },
-                "autoridad_clave": item.autoridad_clave,
                 "descripcion": item.descripcion,
                 "dgt_tipo_clave": item.dgt_tipo_clave,
                 "archivo_actualizado": item.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if item.archivo_actualizado else "",
+                "archivo_tamano": item.archivo_tamano,
                 "ultimo_evento": {
                     "evento": item.ultimo_evento,
                     "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
