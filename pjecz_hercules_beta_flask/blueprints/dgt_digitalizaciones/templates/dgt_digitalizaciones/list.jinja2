@@ -68,6 +68,7 @@
                     <th>Actualizado</th>
                     <th>Tamaño</th>
                     <th>Último evento</th>
+                    <th>Anómalo</th>
                 </tr>
             </thead>
         </table>
@@ -90,7 +91,8 @@
             { data: 'dgt_tipo_clave', className: 'dt-center' },
             { data: 'archivo_actualizado' },
             { data: 'archivo_tamano', className: 'dt-right' },
-            { data: 'ultimo_evento', className: 'dt-center' }
+            { data: 'ultimo_evento', className: 'dt-center' },
+            { data: 'es_anomalo', className: 'dt-center' }
         ];
         configDTDgtDigitalizaciones['columnDefs'] = [
             {
@@ -131,6 +133,23 @@
                         case 'MODIFICADO': bgcolor = 'bg-warning text-dark'; break;
                     }
                     let html = '<span class="badge ' + bgcolor + '">' + data.evento + '</span>';
+                    return html;
+                }
+            },
+            {
+                targets: 7, // es_anomalo
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let bgcolor = 'bg-secondary';
+                    let text = 'Desconocido';
+                    switch (data) {
+                        case 1: text = 'Anómalo'; bgcolor = 'bg-danger'; break;
+                        case 0: text = 'OK'; bgcolor = 'bg-success'; break;
+                    }
+                    let html = '<span class="badge ' + bgcolor + '">' + text + '</span>';
                     return html;
                 }
             }

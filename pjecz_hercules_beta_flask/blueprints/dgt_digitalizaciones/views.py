@@ -59,6 +59,7 @@ def datatable_json():
         DgtDigitalizacion.expediente_anio,
         DgtDigitalizacion.expediente_num,
         DgtDigitalizacion.descripcion,
+        DgtDigitalizacion.es_anomalo,
         DgtDigitalizacion.ultimo_evento,
         DgtDigitalizacion.ultimo_evento_creado,
         DgtTipo.clave.label("dgt_tipo_clave"),
@@ -136,6 +137,7 @@ def datatable_json():
                     "evento": item.ultimo_evento,
                     "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
                 },
+                "es_anomalo": int(item.es_anomalo) if item.es_anomalo is not None else -1,
             }
         )
     # Entregar JSON

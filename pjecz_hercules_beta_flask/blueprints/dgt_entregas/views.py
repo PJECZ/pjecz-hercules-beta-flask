@@ -57,6 +57,7 @@ def datatable_json():
         DgtEntrega.archivo_actualizado,
         DgtEntrega.archivo_tamano,
         DgtEntrega.archivo_uuid,
+        DgtEntrega.es_anomalo,
         DgtEntrega.expediente,
         DgtEntrega.descripcion,
         DgtEntrega.ultimo_evento,
@@ -138,6 +139,7 @@ def datatable_json():
                     "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
                 },
                 "archivo_uuid": item.archivo_uuid,
+                "es_anomalo": int(item.es_anomalo) if item.es_anomalo is not None else -1,
             }
         )
     # Entregar JSON
