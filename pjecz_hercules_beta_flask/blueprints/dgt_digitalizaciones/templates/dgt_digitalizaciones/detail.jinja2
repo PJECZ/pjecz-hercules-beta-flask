@@ -52,7 +52,12 @@
                 {{ detail.label_value('CRC32C', dgt_digitalizacion.archivo_crc32c) }}
                 {{ detail.label_value('Tamaño', tamano_legible) }}
                 {{ detail.label_value('Actualizado', dgt_digitalizacion.archivo_actualizado.strftime('%Y-%m-%d %H:%M')) }}
-                {{ detail.label_value_boolean('Es anómalo', dgt_digitalizacion.es_anomalo) }}
+                {% if dgt_digitalizacion.es_anomalo is not none %}
+                    {% set es_anomalo_html = '<span class="badge ' + ('bg-danger' if dgt_digitalizacion.es_anomalo else 'bg-success') + '">' + ('Sí' if dgt_digitalizacion.es_anomalo else 'No') + '</span>' %}
+                    {{ detail.label_value('Es anómalo', es_anomalo_html | safe) }}
+                {% else %}
+                    {{ detail.label_value('Es anómalo', '<span class="badge bg-secondary">Desconocido</span>') }}
+                {% endif %}
             </div>
         </div>
     {% endcall %}
