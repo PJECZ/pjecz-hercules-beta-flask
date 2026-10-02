@@ -9,6 +9,8 @@ from flask_login import current_user, login_required
 
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
+from pjecz_hercules_beta_flask.blueprints.dgt_digitalizaciones_bitacoras.models import DgtDigitalizacionBitacora
+from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.models import DgtEntregaBitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_rutas.forms import DgtRutaForm
 from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
 from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
@@ -128,7 +130,12 @@ def detail(dgt_ruta_id):
         flash("ID de DGT Ruta inválido", "warning")
         return redirect(url_for("dgt_rutas.list_active"))
     dgt_ruta = DgtRuta.query.get_or_404(dgt_ruta_id)
-    return render_template("dgt_rutas/detail.jinja2", dgt_ruta=dgt_ruta)
+    return render_template(
+        "dgt_rutas/detail.jinja2",
+        dgt_ruta=dgt_ruta,
+        dgt_digitalizaciones_eventos=DgtDigitalizacionBitacora.EVENTOS,
+        dgt_entregas_eventos=DgtEntregaBitacora.EVENTOS,
+    )
 
 
 @dgt_rutas.route("/dgt_rutas/nuevo", methods=["GET", "POST"])
