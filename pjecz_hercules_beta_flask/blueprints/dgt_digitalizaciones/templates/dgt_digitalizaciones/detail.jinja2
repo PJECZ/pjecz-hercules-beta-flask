@@ -24,36 +24,40 @@
     {% endif %}
     {% call detail.card(estatus=dgt_digitalizacion.estatus) %}
         <div class="row">
-            {{ detail.label_value('Archivo', dgt_digitalizacion.archivo_nombre) }}
-            {% if dgt_digitalizacion.ultimo_evento %}
-                {% set ultimo_evento_html = '<span class="badge ' + ultimo_evento_badges.get(dgt_digitalizacion.ultimo_evento, 'bg-secondary') + '">' + dgt_digitalizacion.ultimo_evento + '</span>' %}
-                {{ detail.label_value('Último evento', ultimo_evento_html | safe) }}
-                {{ detail.label_value('Último evento el', dgt_digitalizacion.ultimo_evento_creado.strftime('%Y-%m-%d %H:%M') if dgt_digitalizacion.ultimo_evento_creado else '') }}
-            {% endif %}
-            {% if current_user.can_view('AUTORIDADES') %}
-                {{ detail.label_value('Autoridad', dgt_digitalizacion.autoridad.clave, url_for('autoridades.detail', autoridad_id=dgt_digitalizacion.autoridad_id)) }}
-            {% else %}
-                {{ detail.label_value('Autoridad', dgt_digitalizacion.autoridad.clave) }}
-            {% endif %}
-            {% if current_user.can_view('DGT RUTAS') %}
-                {{ detail.label_value('Ruta', dgt_digitalizacion.dgt_ruta.clave, url_for('dgt_rutas.detail', dgt_ruta_id=dgt_digitalizacion.dgt_ruta_id)) }}
-            {% else %}
-                {{ detail.label_value('Ruta', dgt_digitalizacion.dgt_ruta.clave) }}
-            {% endif %}
-            {{ detail.label_value('Expediente', dgt_digitalizacion.expediente) }}
-            {{ detail.label_value('Año del expediente', dgt_digitalizacion.expediente_anio) }}
-            {{ detail.label_value('Número del expediente', dgt_digitalizacion.expediente_num) }}
-            {{ detail.label_value('Descripción', dgt_digitalizacion.descripcion) }}
-            {{ detail.label_value('URL del archivo', dgt_digitalizacion.archivo_url) }}
-            {{ detail.label_value('URL pública', dgt_digitalizacion.archivo_public_url) }}
-            {{ detail.label_value('MD5', dgt_digitalizacion.archivo_md5) }}
-            {{ detail.label_value('CRC32C', dgt_digitalizacion.archivo_crc32c) }}
-            {{ detail.label_value('Tamaño', tamano_legible) }}
-            {{ detail.label_value('Actualizado', dgt_digitalizacion.archivo_actualizado.strftime('%Y-%m-%d %H:%M') if dgt_digitalizacion.archivo_actualizado else '') }}
+            <div class="col-md-6">
+                {{ detail.label_value('URL pública', dgt_digitalizacion.archivo_public_url) }}
+                {% if current_user.can_view('AUTORIDADES') %}
+                    {{ detail.label_value('Autoridad', dgt_digitalizacion.autoridad.clave, url_for('autoridades.detail', autoridad_id=dgt_digitalizacion.autoridad_id)) }}
+                {% else %}
+                    {{ detail.label_value('Autoridad', dgt_digitalizacion.autoridad.clave) }}
+                {% endif %}
+                {% if current_user.can_view('DGT RUTAS') %}
+                    {{ detail.label_value('Ruta', dgt_digitalizacion.dgt_ruta.clave, url_for('dgt_rutas.detail', dgt_ruta_id=dgt_digitalizacion.dgt_ruta_id)) }}
+                {% else %}
+                    {{ detail.label_value('Ruta', dgt_digitalizacion.dgt_ruta.clave) }}
+                {% endif %}
+                {{ detail.label_value('Expediente', dgt_digitalizacion.expediente) }}
+                {{ detail.label_value('Año', dgt_digitalizacion.expediente_anio) }}
+                {{ detail.label_value('Número', dgt_digitalizacion.expediente_num) }}
+                {{ detail.label_value('Descripción', dgt_digitalizacion.descripcion) }}
+            </div>
+            <div class="col-md-6">
+                {% if dgt_digitalizacion.ultimo_evento %}
+                    {% set ultimo_evento_html = '<span class="badge ' + ultimo_evento_badges.get(dgt_digitalizacion.ultimo_evento, 'bg-secondary') + '">' + dgt_digitalizacion.ultimo_evento + '</span>' %}
+                    {{ detail.label_value('Último evento', ultimo_evento_html | safe) }}
+                    {{ detail.label_value('Último evento el', dgt_digitalizacion.ultimo_evento_creado.strftime('%Y-%m-%d %H:%M') if dgt_digitalizacion.ultimo_evento_creado else '') }}
+                {% endif %}
+                {{ detail.label_value('URL del archivo', dgt_digitalizacion.archivo_url) }}
+                {{ detail.label_value('MD5', dgt_digitalizacion.archivo_md5) }}
+                {{ detail.label_value('CRC32C', dgt_digitalizacion.archivo_crc32c) }}
+                {{ detail.label_value('Tamaño', tamano_legible) }}
+                {{ detail.label_value('Actualizado', dgt_digitalizacion.archivo_actualizado.strftime('%Y-%m-%d %H:%M')) }}
+                {{ detail.label_value_boolean('Es anómalo', dgt_digitalizacion.es_anomalo) }}
+            </div>
         </div>
     {% endcall %}
     {% call detail.card() %}
-        {% if dgt_digitalizacion.archivo_tamano is not none and dgt_digitalizacion.archivo_tamano > vista_previa_pdf_max_size_mb %}
+        {% if dgt_digitalizacion.archivo_tamano > vista_previa_pdf_max_size_mb %}
             <a href="" class="w-100 btn btn-lg btn-success my-2" id="downloadPDFButton" target="_blank" style="display: none;">
                 <span class="mdi mdi-download"></span> Descargar archivo {{ tamano_legible }}
             </a>
@@ -69,7 +73,7 @@
 {% endblock %}
 
 {% block custom_javascript %}
-    {% if dgt_digitalizacion.archivo_tamano is not none and dgt_digitalizacion.archivo_tamano > vista_previa_pdf_max_size_mb %}
+    {% if dgt_digitalizacion.archivo_tamano > vista_previa_pdf_max_size_mb %}
         <script>
             // Obtener la URL pública del archivo PDF para habilitar el botón de descarga
             downloadPDFButton = document.getElementById('downloadPDFButton');

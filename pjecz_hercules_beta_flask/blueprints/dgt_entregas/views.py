@@ -203,10 +203,15 @@ def detail(dgt_entrega_id):
         flash("ID de DGT Entrega inválido", "warning")
         return redirect(url_for("dgt_entregas.list_active"))
     dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
+    titulo = f"Entrega {dgt_entrega.autoridad.clave}"
+    if dgt_entrega.expediente:
+        titulo = f"{titulo} {dgt_entrega.expediente}"
+    if dgt_entrega.descripcion:
+        titulo = f"{titulo} {dgt_entrega.descripcion}"
     return render_template(
         "dgt_entregas/detail.jinja2",
         dgt_entrega=dgt_entrega,
-        titulo=f"Entrega {dgt_entrega.autoridad.clave} {dgt_entrega.expediente} {dgt_entrega.descripcion} {dgt_entrega.dgt_ruta.dgt_tipo.clave}",
+        titulo=f"{titulo} {dgt_entrega.dgt_ruta.dgt_tipo.clave}",
         vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
     )
 

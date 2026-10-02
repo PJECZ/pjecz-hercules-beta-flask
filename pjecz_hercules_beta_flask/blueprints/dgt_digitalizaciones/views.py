@@ -207,11 +207,14 @@ def detail(dgt_digitalizacion_id):
         flash("ID de DGT Digitalización inválido", "warning")
         return redirect(url_for("dgt_digitalizaciones.list_active"))
     dgt_digitalizacion = DgtDigitalizacion.query.get_or_404(dgt_digitalizacion_id)
+    titulo = f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"
+    if dgt_digitalizacion.descripcion:
+        titulo = f"{titulo} {dgt_digitalizacion.descripcion}"
     return render_template(
         "dgt_digitalizaciones/detail.jinja2",
         dgt_digitalizacion=dgt_digitalizacion,
         eventos=DgtDigitalizacionBitacora.EVENTOS,
-        titulo=f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente} {dgt_digitalizacion.descripcion} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
+        titulo=f"{titulo} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
         vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
     )
 
