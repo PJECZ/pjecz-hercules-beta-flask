@@ -51,16 +51,18 @@ def datatable_json():
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
     consulta = select(
-        DgtDigitalizacion.id,
-        DgtDigitalizacion.expediente,
         Autoridad.clave.label("autoridad_clave"),
-        DgtDigitalizacion.descripcion,
-        DgtTipo.clave.label("dgt_tipo_clave"),
+        DgtDigitalizacion.id,
         DgtDigitalizacion.archivo_actualizado,
-        DgtDigitalizacion.ultimo_evento,
-        DgtDigitalizacion.ultimo_evento_creado,
+        DgtDigitalizacion.archivo_tamano,
+        DgtDigitalizacion.expediente,
         DgtDigitalizacion.expediente_anio,
         DgtDigitalizacion.expediente_num,
+        DgtDigitalizacion.descripcion,
+        DgtDigitalizacion.es_anomalo,
+        DgtDigitalizacion.ultimo_evento,
+        DgtDigitalizacion.ultimo_evento_creado,
+        DgtTipo.clave.label("dgt_tipo_clave"),
     ).join(Autoridad).join(DgtRuta).join(DgtTipo)
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
@@ -70,7 +72,7 @@ def datatable_json():
     if "expediente" in request.form:
         expediente = safe_string(request.form["expediente"])
         if expediente != "":
-            consulta = consulta.where(DgtDigitalizacion.expediente.contains(expediente))
+            consulta = consulta.where(DgtDigitalizacion.expediente == expediente)
     if "descripcion" in request.form:
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
@@ -94,12 +96,14 @@ def datatable_json():
         ultimo_evento = safe_string(request.form["ultimo_evento"])
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
             consulta = consulta.where(DgtDigitalizacion.ultimo_evento == ultimo_evento)
+    if request.form.get("es_anomalo") == "1":
+        consulta = consulta.where(DgtDigitalizacion.es_anomalo.is_(True))
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
-                consulta = consulta.where(Autoridad.clave.contains(autoridad_clave))
+                consulta = consulta.where(Autoridad.clave == autoridad_clave)
         except ValueError:
             pass
     if "materia_id" in request.form:
@@ -111,28 +115,31 @@ def datatable_json():
     # Ordenar y paginar
     total = database.session.execute(select(func.count()).select_from(consulta.subquery())).scalar()
     consulta = (
-        consulta.order_by(DgtDigitalizacion.expediente_anio, DgtDigitalizacion.expediente_num)
-        .offset(start)
-        .limit(rows_per_page)
+        consulta.order_by(
+            DgtDigitalizacion.expediente_anio,
+            DgtDigitalizacion.expediente_num,
+            DgtDigitalizacion.descripcion,
+        ).offset(start).limit(rows_per_page)
     )
-    registros = database.session.execute(consulta)
     # Elaborar datos para DataTable
     data = []
-    for item in registros:
+    for item in database.session.execute(consulta):
         data.append(
             {
+                "autoridad_clave": item.autoridad_clave,
                 "detalle": {
                     "expediente": item.expediente,
                     "url": url_for("dgt_digitalizaciones.detail", dgt_digitalizacion_id=item.id),
                 },
-                "autoridad_clave": item.autoridad_clave,
                 "descripcion": item.descripcion,
                 "dgt_tipo_clave": item.dgt_tipo_clave,
                 "archivo_actualizado": item.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if item.archivo_actualizado else "",
+                "archivo_tamano": item.archivo_tamano,
                 "ultimo_evento": {
                     "evento": item.ultimo_evento,
                     "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
                 },
+                "es_anomalo": int(item.es_anomalo) if item.es_anomalo is not None else -1,
             }
         )
     # Entregar JSON
@@ -175,6 +182,10 @@ def list_active():
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
             filtros["ultimo_evento"] = ultimo_evento
             titulo = f"{titulo} con último evento {DgtDigitalizacionBitacora.EVENTOS[ultimo_evento].lower()}"
+    # Si viene es_anomalo, filtrar por los anómalos
+    if request.args.get("es_anomalo") == "1":
+        filtros["es_anomalo"] = "1"
+        titulo = f"{titulo} anómalas"
     return render_template(
         "dgt_digitalizaciones/list.jinja2",
         filtros=json.dumps(filtros),
@@ -182,6 +193,7 @@ def list_active():
         estatus="A",
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         ultimo_evento=filtros.get("ultimo_evento", ""),
+        es_anomalo="es_anomalo" in filtros,
     )
 
 
@@ -196,6 +208,7 @@ def list_inactive():
         estatus="B",
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         ultimo_evento="",
+        es_anomalo=False,
     )
 
 
@@ -207,11 +220,14 @@ def detail(dgt_digitalizacion_id):
         flash("ID de DGT Digitalización inválido", "warning")
         return redirect(url_for("dgt_digitalizaciones.list_active"))
     dgt_digitalizacion = DgtDigitalizacion.query.get_or_404(dgt_digitalizacion_id)
+    titulo = f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"
+    if dgt_digitalizacion.descripcion:
+        titulo = f"{titulo} {dgt_digitalizacion.descripcion}"
     return render_template(
         "dgt_digitalizaciones/detail.jinja2",
         dgt_digitalizacion=dgt_digitalizacion,
         eventos=DgtDigitalizacionBitacora.EVENTOS,
-        titulo=f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente} {dgt_digitalizacion.descripcion} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
+        titulo=f"{titulo} {dgt_digitalizacion.dgt_ruta.dgt_tipo.clave}",
         vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
     )
 

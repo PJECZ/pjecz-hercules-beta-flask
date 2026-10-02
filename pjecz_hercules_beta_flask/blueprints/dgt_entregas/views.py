@@ -7,13 +7,15 @@ from datetime import date, timedelta
 
 from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import Date, cast, func
+from sqlalchemy import Date, cast, func, select
 from werkzeug.exceptions import BadRequest, NotFound
 
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.bitacoras.models import Bitacora
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas.models import DgtEntrega
 from pjecz_hercules_beta_flask.blueprints.dgt_entregas_bitacoras.models import DgtEntregaBitacora
+from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
+from pjecz_hercules_beta_flask.blueprints.dgt_tipos.models import DgtTipo
 from pjecz_hercules_beta_flask.blueprints.materias.models import Materia
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
@@ -48,81 +50,98 @@ def datatable_json():
     # Tomar parámetros de Datatables
     draw, start, rows_per_page = get_datatable_parameters()
     # Consultar
-    consulta = DgtEntrega.query
+    consulta = select(
+        Autoridad.clave.label("autoridad_clave"),
+        DgtEntrega.id,
+        DgtEntrega.archivo_nombre,
+        DgtEntrega.archivo_actualizado,
+        DgtEntrega.archivo_tamano,
+        DgtEntrega.archivo_uuid,
+        DgtEntrega.es_anomalo,
+        DgtEntrega.expediente,
+        DgtEntrega.descripcion,
+        DgtEntrega.ultimo_evento,
+        DgtEntrega.ultimo_evento_creado,
+        DgtTipo.clave.label("dgt_tipo_clave"),
+    ).join(Autoridad).join(DgtRuta).join(DgtTipo)
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
-        consulta = consulta.filter_by(estatus=request.form["estatus"])
+        consulta = consulta.where(DgtEntrega.estatus == request.form["estatus"])
     else:
-        consulta = consulta.filter_by(estatus="A")
+        consulta = consulta.where(DgtEntrega.estatus == "A")
     if "expediente" in request.form:
         expediente = safe_string(request.form["expediente"])
         if expediente != "":
-            consulta = consulta.filter(DgtEntrega.expediente.contains(expediente))
+            consulta = consulta.where(DgtEntrega.expediente == expediente)
     if "descripcion" in request.form:
         descripcion = safe_string(request.form["descripcion"], save_enie=True)
         if descripcion != "":
-            consulta = consulta.filter(DgtEntrega.descripcion.contains(descripcion))
+            consulta = consulta.where(DgtEntrega.descripcion.contains(descripcion))
     if "dgt_ruta_id" in request.form:
-        consulta = consulta.filter(DgtEntrega.dgt_ruta_id == request.form["dgt_ruta_id"])
+        consulta = consulta.where(DgtEntrega.dgt_ruta_id == request.form["dgt_ruta_id"])
     if "expediente_anio" in request.form:
         try:
             expediente_anio = int(request.form["expediente_anio"])
-            consulta = consulta.filter(DgtEntrega.expediente_anio == expediente_anio)
+            consulta = consulta.where(DgtEntrega.expediente_anio == expediente_anio)
         except ValueError:
             pass
     if "archivo_actualizado" in request.form:
         try:
             archivo_actualizado = date.fromisoformat(request.form["archivo_actualizado"])
-            consulta = consulta.filter(DgtEntrega.archivo_actualizado >= archivo_actualizado)
-            consulta = consulta.filter(DgtEntrega.archivo_actualizado < archivo_actualizado + timedelta(days=1))
+            consulta = consulta.where(DgtEntrega.archivo_actualizado >= archivo_actualizado)
+            consulta = consulta.where(DgtEntrega.archivo_actualizado < archivo_actualizado + timedelta(days=1))
         except ValueError:
             pass
     if "ultimo_evento" in request.form:
         ultimo_evento = safe_string(request.form["ultimo_evento"])
         if ultimo_evento in DgtEntregaBitacora.EVENTOS:
-            consulta = consulta.filter(DgtEntrega.ultimo_evento == ultimo_evento)
+            consulta = consulta.where(DgtEntrega.ultimo_evento == ultimo_evento)
     if request.form.get("archivo_uuid_nulo") == "1":
-        consulta = consulta.filter(DgtEntrega.archivo_uuid.is_(None))
+        consulta = consulta.where(DgtEntrega.archivo_uuid.is_(None))
+    if request.form.get("es_anomalo") == "1":
+        consulta = consulta.where(DgtEntrega.es_anomalo.is_(True))
     # Luego filtrar por columnas de otras tablas
-    autoridad_unida = False
     if "autoridad_clave" in request.form:
         try:
             autoridad_clave = safe_clave(request.form["autoridad_clave"])
             if autoridad_clave != "":
-                consulta = consulta.join(Autoridad).filter(Autoridad.clave.contains(autoridad_clave))
-                autoridad_unida = True
+                consulta = consulta.where(Autoridad.clave == autoridad_clave)
         except ValueError:
             pass
     if "materia_id" in request.form:
         try:
             materia_id = int(request.form["materia_id"])
-            if not autoridad_unida:
-                consulta = consulta.join(Autoridad)
-            consulta = consulta.filter(Autoridad.materia_id == materia_id)
+            consulta = consulta.where(Autoridad.materia_id == materia_id)
         except ValueError:
             pass
     # Ordenar y paginar
-    registros = consulta.order_by(DgtEntrega.archivo_actualizado.desc()).offset(start).limit(rows_per_page).all()
-    total = consulta.count()
+    total = database.session.execute(select(func.count()).select_from(consulta.subquery())).scalar()
+    consulta = (
+        consulta.order_by(DgtEntrega.archivo_actualizado.desc())
+        .offset(start)
+        .limit(rows_per_page)
+    )
     # Elaborar datos para DataTable
     data = []
-    for resultado in registros:
+    for item in database.session.execute(consulta):
         data.append(
             {
+                "autoridad_clave": item.autoridad_clave,
                 "detalle": {
-                    "archivo_nombre": resultado.archivo_nombre,
-                    "url": url_for("dgt_entregas.detail", dgt_entrega_id=resultado.id),
+                    "archivo_nombre": item.archivo_nombre,
+                    "url": url_for("dgt_entregas.detail", dgt_entrega_id=item.id),
                 },
-                "autoridad_clave": resultado.autoridad.clave,
-                "expediente": resultado.expediente,
-                "descripcion": resultado.descripcion,
-                "dgt_tipo_clave": resultado.dgt_ruta.dgt_tipo.clave,
-                "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M"),
+                "expediente": item.expediente,
+                "descripcion": item.descripcion,
+                "dgt_tipo_clave": item.dgt_tipo_clave,
+                "archivo_actualizado": item.archivo_actualizado.strftime("%Y-%m-%d %H:%M"),
+                "archivo_tamano": item.archivo_tamano,
                 "ultimo_evento": {
-                    "evento": resultado.ultimo_evento,
-                    "creado": resultado.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if resultado.ultimo_evento_creado else "",
+                    "evento": item.ultimo_evento,
+                    "creado": item.ultimo_evento_creado.strftime("%Y-%m-%d %H:%M") if item.ultimo_evento_creado else "",
                 },
-                "archivo_uuid": resultado.archivo_uuid,
+                "archivo_uuid": item.archivo_uuid,
+                "es_anomalo": int(item.es_anomalo) if item.es_anomalo is not None else -1,
             }
         )
     # Entregar JSON
@@ -169,6 +188,10 @@ def list_active():
     if request.args.get("archivo_uuid_nulo") == "1":
         filtros["archivo_uuid_nulo"] = "1"
         titulo = f"{titulo} sin UUID"
+    # Si viene es_anomalo, filtrar por los anómalos
+    if request.args.get("es_anomalo") == "1":
+        filtros["es_anomalo"] = "1"
+        titulo = f"{titulo} anómalas"
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps(filtros),
@@ -177,6 +200,7 @@ def list_active():
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento=filtros.get("ultimo_evento", ""),
         archivo_uuid_nulo="archivo_uuid_nulo" in filtros,
+        es_anomalo="es_anomalo" in filtros,
     )
 
 
@@ -192,6 +216,7 @@ def list_inactive():
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento="",
         archivo_uuid_nulo=False,
+        es_anomalo=False,
     )
 
 
@@ -203,10 +228,15 @@ def detail(dgt_entrega_id):
         flash("ID de DGT Entrega inválido", "warning")
         return redirect(url_for("dgt_entregas.list_active"))
     dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
+    titulo = f"Entrega {dgt_entrega.autoridad.clave}"
+    if dgt_entrega.expediente:
+        titulo = f"{titulo} {dgt_entrega.expediente}"
+    if dgt_entrega.descripcion:
+        titulo = f"{titulo} {dgt_entrega.descripcion}"
     return render_template(
         "dgt_entregas/detail.jinja2",
         dgt_entrega=dgt_entrega,
-        titulo=f"Entrega {dgt_entrega.autoridad.clave} {dgt_entrega.expediente} {dgt_entrega.descripcion} {dgt_entrega.dgt_ruta.dgt_tipo.clave}",
+        titulo=f"{titulo} {dgt_entrega.dgt_ruta.dgt_tipo.clave}",
         vista_previa_pdf_max_size_mb=VISTA_PREVIA_PDF_MAX_SIZE_MB,
     )
 

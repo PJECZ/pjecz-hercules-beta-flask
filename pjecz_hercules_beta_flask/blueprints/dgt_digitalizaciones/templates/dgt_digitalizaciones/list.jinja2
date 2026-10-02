@@ -50,9 +50,15 @@
                             <label for="filtroDgtDigitalizacionUltimoEvento">Último evento</label>
                         </div>
                     </div>
-                    <div class="col-4 text-end">
+                    <div class="col-2 d-flex align-items-center">
+                        <div class="form-check">
+                            <input id="filtroDgtDigitalizacionEsAnomalo" type="checkbox" class="form-check-input" onchange="cambiarEsAnomalo();" {% if es_anomalo %}checked{% endif %}>
+                            <label for="filtroDgtDigitalizacionEsAnomalo" class="form-check-label">Anómalos</label>
+                        </div>
+                    </div>
+                    <div class="col-2 text-end">
                         <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDgtDigitalizaciones.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
-                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDgtDigitalizaciones.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="limpiarFiltros();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
                 </form>
             </div>
@@ -66,7 +72,9 @@
                     <th>Descripción</th>
                     <th>Tipo</th>
                     <th>Actualizado</th>
+                    <th>Tamaño</th>
                     <th>Último evento</th>
+                    <th>Anómalo</th>
                 </tr>
             </thead>
         </table>
@@ -83,12 +91,14 @@
         configDTDgtDigitalizaciones['ajax']['url'] = "{{ url_for('dgt_digitalizaciones.datatable_json') }}";
         configDTDgtDigitalizaciones['ajax']['data'] = {{ filtros }};
         configDTDgtDigitalizaciones['columns'] = [
-            { data: 'detalle' },
-            { data: 'autoridad_clave' },
-            { data: 'descripcion' },
-            { data: 'dgt_tipo_clave' },
+            { data: 'detalle', className: 'dt-right' },
+            { data: 'autoridad_clave', className: 'dt-center' },
+            { data: 'descripcion', className: 'dt-left' },
+            { data: 'dgt_tipo_clave', className: 'dt-center' },
             { data: 'archivo_actualizado' },
-            { data: 'ultimo_evento' }
+            { data: 'archivo_tamano', className: 'dt-right' },
+            { data: 'ultimo_evento', className: 'dt-center' },
+            { data: 'es_anomalo', className: 'dt-center' }
         ];
         configDTDgtDigitalizaciones['columnDefs'] = [
             {
@@ -99,7 +109,24 @@
                 }
             },
             {
-                targets: 5, // ultimo_evento
+                targets: 5, // archivo_tamano
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let size = data;
+                    let units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    let unitIndex = 0;
+                    while (size >= 1024 && unitIndex < units.length - 1) {
+                        size /= 1024;
+                        unitIndex++;
+                    }
+                    return size.toFixed(2) + ' ' + units[unitIndex];
+                }
+            },
+            {
+                targets: 6, // ultimo_evento
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data.evento) {
@@ -114,6 +141,23 @@
                     let html = '<span class="badge ' + bgcolor + '">' + data.evento + '</span>';
                     return html;
                 }
+            },
+            {
+                targets: 7, // es_anomalo
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let bgcolor = 'bg-secondary';
+                    let text = 'Desconocido';
+                    switch (data) {
+                        case 1: text = 'Anómalo'; bgcolor = 'bg-danger'; break;
+                        case 0: text = 'OK'; bgcolor = 'bg-success'; break;
+                    }
+                    let html = '<span class="badge ' + bgcolor + '">' + text + '</span>';
+                    return html;
+                }
             }
         ];
         // Filtros DGT Digitalizaciones
@@ -123,5 +167,19 @@
         filtrosDgtDigitalizaciones.agregarInput('filtroDgtDigitalizacionDescripcion', 'descripcion');
         filtrosDgtDigitalizaciones.agregarSelect('filtroDgtDigitalizacionUltimoEvento', 'ultimo_evento');
         filtrosDgtDigitalizaciones.precargar();
+        // Checkbox Anómalos, se maneja aparte porque FiltrosDataTable solo lee el value de los elementos
+        function cambiarEsAnomalo() {
+            if (document.getElementById('filtroDgtDigitalizacionEsAnomalo').checked) {
+                configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'] = '1';
+            } else {
+                delete configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'];
+            }
+            filtrosDgtDigitalizaciones.buscar();
+        }
+        // Limpiar, incluyendo el checkbox Anómalos
+        function limpiarFiltros() {
+            delete configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'];
+            filtrosDgtDigitalizaciones.limpiar();
+        }
     </script>
 {% endblock %}

@@ -50,10 +50,14 @@
                             <label for="filtroDgtEntregaUltimoEvento">Último evento</label>
                         </div>
                     </div>
-                    <div class="col-2 d-flex align-items-center">
+                    <div class="col-2 d-flex flex-column justify-content-center">
                         <div class="form-check">
                             <input id="filtroDgtEntregaArchivoUuidNulo" type="checkbox" class="form-check-input" onchange="cambiarArchivoUuidNulo();" {% if archivo_uuid_nulo %}checked{% endif %}>
                             <label for="filtroDgtEntregaArchivoUuidNulo" class="form-check-label">UUID nulo</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="filtroDgtEntregaEsAnomalo" type="checkbox" class="form-check-input" onchange="cambiarEsAnomalo();" {% if es_anomalo %}checked{% endif %}>
+                            <label for="filtroDgtEntregaEsAnomalo" class="form-check-label">Anómalos</label>
                         </div>
                     </div>
                     <div class="col-2 text-end">
@@ -73,8 +77,10 @@
                     <th>Descripción</th>
                     <th>Tipo</th>
                     <th>Actualizado</th>
+                    <th>Tamaño</th>
                     <th>Último evento</th>
                     <th>UUID</th>
+                    <th>Anómalo</th>
                 </tr>
             </thead>
         </table>
@@ -92,13 +98,15 @@
         configDTDgtEntregas['ajax']['data'] = {{ filtros }};
         configDTDgtEntregas['columns'] = [
             { data: 'detalle' },
-            { data: 'autoridad_clave' },
-            { data: 'expediente' },
-            { data: 'descripcion' },
-            { data: 'dgt_tipo_clave' },
+            { data: 'autoridad_clave', className: 'dt-center' },
+            { data: 'expediente', className: 'dt-right' },
+            { data: 'descripcion', className: 'dt-left' },
+            { data: 'dgt_tipo_clave', className: 'dt-center' },
             { data: 'archivo_actualizado' },
-            { data: 'ultimo_evento' },
-            { data: 'archivo_uuid' }
+            { data: 'archivo_tamano', className: 'dt-right' },
+            { data: 'ultimo_evento', className: 'dt-center' },
+            { data: 'archivo_uuid', className: 'dt-center' },
+            { data: 'es_anomalo', className: 'dt-center' }
         ];
         configDTDgtEntregas['columnDefs'] = [
             {
@@ -109,7 +117,24 @@
                 }
             },
             {
-                targets: 6, // ultimo_evento
+                targets: 6, // archivo_tamano
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let size = data;
+                    let units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    let unitIndex = 0;
+                    while (size >= 1024 && unitIndex < units.length - 1) {
+                        size /= 1024;
+                        unitIndex++;
+                    }
+                    return size.toFixed(2) + ' ' + units[unitIndex];
+                }
+            },
+            {
+                targets: 7, // ultimo_evento
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data.evento) {
@@ -126,13 +151,30 @@
                 }
             },
             {
-                targets: 7, // archivo_uuid
+                targets: 8, // archivo_uuid
                 data: null,
                 render: function(data, type, row, meta) {
                     if (!data) {
                         return '';
                     }
                     return '<span class="badge bg-info" title="' + data + '">UUID</span>';
+                }
+            },
+            {
+                targets: 9, // es_anomalo
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (!data) {
+                        return '';
+                    }
+                    let bgcolor = 'bg-secondary';
+                    let text = 'Desconocido';
+                    switch (data) {
+                        case 1: text = 'Anómalo'; bgcolor = 'bg-danger'; break;
+                        case 0: text = 'OK'; bgcolor = 'bg-success'; break;
+                    }
+                    let html = '<span class="badge ' + bgcolor + '">' + text + '</span>';
+                    return html;
                 }
             }
         ];
@@ -152,9 +194,19 @@
             }
             filtrosDgtEntregas.buscar();
         }
-        // Limpiar, incluyendo el checkbox UUID nulo
+        // Checkbox Anómalos, se maneja igual que UUID nulo
+        function cambiarEsAnomalo() {
+            if (document.getElementById('filtroDgtEntregaEsAnomalo').checked) {
+                configDTDgtEntregas['ajax']['data']['es_anomalo'] = '1';
+            } else {
+                delete configDTDgtEntregas['ajax']['data']['es_anomalo'];
+            }
+            filtrosDgtEntregas.buscar();
+        }
+        // Limpiar, incluyendo los checkboxes UUID nulo y Anómalos
         function limpiarFiltros() {
             delete configDTDgtEntregas['ajax']['data']['archivo_uuid_nulo'];
+            delete configDTDgtEntregas['ajax']['data']['es_anomalo'];
             filtrosDgtEntregas.limpiar();
         }
     </script>
