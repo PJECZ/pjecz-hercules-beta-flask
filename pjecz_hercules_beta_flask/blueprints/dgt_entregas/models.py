@@ -39,9 +39,9 @@ class DgtEntrega(database.Model, UniversalMixin):
     archivo_tamano: Mapped[int]
 
     # Columnas de control
-    expediente: Mapped[str] = mapped_column(String(16))
-    expediente_anio: Mapped[int]
-    expediente_num: Mapped[int]
+    expediente: Mapped[Optional[str]] = mapped_column(String(16))
+    expediente_anio: Mapped[Optional[int]]
+    expediente_num: Mapped[Optional[int]]
     descripcion: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Columnas con el último evento de la bitácora, actualizadas por un trigger

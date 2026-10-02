@@ -26,7 +26,7 @@ from pjecz_hercules_beta_flask.lib.exceptions import (
     MyFileNotFoundError,
     MyNotValidParamError,
 )
-from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_url, get_file_from_gcs
+from pjecz_hercules_beta_flask.lib.google_cloud_storage import get_blob_name_from_gs_path, get_file_from_gcs
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "DGT ENTREGAS"
@@ -394,7 +394,7 @@ def preview_file_pdf(dgt_entrega_id):
     try:
         archivo = get_file_from_gcs(
             bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
-            blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
+            blob_name=get_blob_name_from_gs_path(dgt_entrega.archivo_url),
         )
     except MyBucketForbiddenError as error:
         raise BadRequest("No se tiene permiso para acceder al depósito.") from error
@@ -430,7 +430,7 @@ def download_file_pdf(dgt_entrega_id):
     try:
         archivo = get_file_from_gcs(
             bucket_name=dgt_entrega.dgt_ruta.dgt_deposito.clave.lower(),
-            blob_name=get_blob_name_from_url(dgt_entrega.archivo_url),
+            blob_name=get_blob_name_from_gs_path(dgt_entrega.archivo_url),
         )
     except MyBucketForbiddenError as error:
         raise BadRequest("No se tiene permiso para acceder al depósito.") from error
