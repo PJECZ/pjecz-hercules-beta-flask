@@ -96,6 +96,8 @@ def datatable_json():
         ultimo_evento = safe_string(request.form["ultimo_evento"])
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
             consulta = consulta.where(DgtDigitalizacion.ultimo_evento == ultimo_evento)
+    if request.form.get("es_anomalo") == "1":
+        consulta = consulta.where(DgtDigitalizacion.es_anomalo.is_(True))
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
@@ -180,6 +182,10 @@ def list_active():
         if ultimo_evento in DgtDigitalizacionBitacora.EVENTOS:
             filtros["ultimo_evento"] = ultimo_evento
             titulo = f"{titulo} con último evento {DgtDigitalizacionBitacora.EVENTOS[ultimo_evento].lower()}"
+    # Si viene es_anomalo, filtrar por los anómalos
+    if request.args.get("es_anomalo") == "1":
+        filtros["es_anomalo"] = "1"
+        titulo = f"{titulo} anómalas"
     return render_template(
         "dgt_digitalizaciones/list.jinja2",
         filtros=json.dumps(filtros),
@@ -187,6 +193,7 @@ def list_active():
         estatus="A",
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         ultimo_evento=filtros.get("ultimo_evento", ""),
+        es_anomalo="es_anomalo" in filtros,
     )
 
 
@@ -201,6 +208,7 @@ def list_inactive():
         estatus="B",
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         ultimo_evento="",
+        es_anomalo=False,
     )
 
 

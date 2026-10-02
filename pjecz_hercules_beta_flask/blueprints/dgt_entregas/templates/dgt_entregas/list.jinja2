@@ -50,10 +50,14 @@
                             <label for="filtroDgtEntregaUltimoEvento">Último evento</label>
                         </div>
                     </div>
-                    <div class="col-2 d-flex align-items-center">
+                    <div class="col-2 d-flex flex-column justify-content-center">
                         <div class="form-check">
                             <input id="filtroDgtEntregaArchivoUuidNulo" type="checkbox" class="form-check-input" onchange="cambiarArchivoUuidNulo();" {% if archivo_uuid_nulo %}checked{% endif %}>
                             <label for="filtroDgtEntregaArchivoUuidNulo" class="form-check-label">UUID nulo</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="filtroDgtEntregaEsAnomalo" type="checkbox" class="form-check-input" onchange="cambiarEsAnomalo();" {% if es_anomalo %}checked{% endif %}>
+                            <label for="filtroDgtEntregaEsAnomalo" class="form-check-label">Anómalos</label>
                         </div>
                     </div>
                     <div class="col-2 text-end">
@@ -190,9 +194,19 @@
             }
             filtrosDgtEntregas.buscar();
         }
-        // Limpiar, incluyendo el checkbox UUID nulo
+        // Checkbox Anómalos, se maneja igual que UUID nulo
+        function cambiarEsAnomalo() {
+            if (document.getElementById('filtroDgtEntregaEsAnomalo').checked) {
+                configDTDgtEntregas['ajax']['data']['es_anomalo'] = '1';
+            } else {
+                delete configDTDgtEntregas['ajax']['data']['es_anomalo'];
+            }
+            filtrosDgtEntregas.buscar();
+        }
+        // Limpiar, incluyendo los checkboxes UUID nulo y Anómalos
         function limpiarFiltros() {
             delete configDTDgtEntregas['ajax']['data']['archivo_uuid_nulo'];
+            delete configDTDgtEntregas['ajax']['data']['es_anomalo'];
             filtrosDgtEntregas.limpiar();
         }
     </script>

@@ -98,6 +98,8 @@ def datatable_json():
             consulta = consulta.where(DgtEntrega.ultimo_evento == ultimo_evento)
     if request.form.get("archivo_uuid_nulo") == "1":
         consulta = consulta.where(DgtEntrega.archivo_uuid.is_(None))
+    if request.form.get("es_anomalo") == "1":
+        consulta = consulta.where(DgtEntrega.es_anomalo.is_(True))
     # Luego filtrar por columnas de otras tablas
     if "autoridad_clave" in request.form:
         try:
@@ -186,6 +188,10 @@ def list_active():
     if request.args.get("archivo_uuid_nulo") == "1":
         filtros["archivo_uuid_nulo"] = "1"
         titulo = f"{titulo} sin UUID"
+    # Si viene es_anomalo, filtrar por los anómalos
+    if request.args.get("es_anomalo") == "1":
+        filtros["es_anomalo"] = "1"
+        titulo = f"{titulo} anómalas"
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps(filtros),
@@ -194,6 +200,7 @@ def list_active():
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento=filtros.get("ultimo_evento", ""),
         archivo_uuid_nulo="archivo_uuid_nulo" in filtros,
+        es_anomalo="es_anomalo" in filtros,
     )
 
 
@@ -209,6 +216,7 @@ def list_inactive():
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento="",
         archivo_uuid_nulo=False,
+        es_anomalo=False,
     )
 
 

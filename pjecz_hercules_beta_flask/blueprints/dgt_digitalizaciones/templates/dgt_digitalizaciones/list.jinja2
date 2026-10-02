@@ -50,9 +50,15 @@
                             <label for="filtroDgtDigitalizacionUltimoEvento">Último evento</label>
                         </div>
                     </div>
-                    <div class="col-4 text-end">
+                    <div class="col-2 d-flex align-items-center">
+                        <div class="form-check">
+                            <input id="filtroDgtDigitalizacionEsAnomalo" type="checkbox" class="form-check-input" onchange="cambiarEsAnomalo();" {% if es_anomalo %}checked{% endif %}>
+                            <label for="filtroDgtDigitalizacionEsAnomalo" class="form-check-label">Anómalos</label>
+                        </div>
+                    </div>
+                    <div class="col-2 text-end">
                         <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDgtDigitalizaciones.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
-                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDgtDigitalizaciones.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="limpiarFiltros();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
                 </form>
             </div>
@@ -161,5 +167,19 @@
         filtrosDgtDigitalizaciones.agregarInput('filtroDgtDigitalizacionDescripcion', 'descripcion');
         filtrosDgtDigitalizaciones.agregarSelect('filtroDgtDigitalizacionUltimoEvento', 'ultimo_evento');
         filtrosDgtDigitalizaciones.precargar();
+        // Checkbox Anómalos, se maneja aparte porque FiltrosDataTable solo lee el value de los elementos
+        function cambiarEsAnomalo() {
+            if (document.getElementById('filtroDgtDigitalizacionEsAnomalo').checked) {
+                configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'] = '1';
+            } else {
+                delete configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'];
+            }
+            filtrosDgtDigitalizaciones.buscar();
+        }
+        // Limpiar, incluyendo el checkbox Anómalos
+        function limpiarFiltros() {
+            delete configDTDgtDigitalizaciones['ajax']['data']['es_anomalo'];
+            filtrosDgtDigitalizaciones.limpiar();
+        }
     </script>
 {% endblock %}
