@@ -75,18 +75,6 @@ def list_active():
     )
 
 
-@dgt_entregas_bitacoras.route("/dgt_entregas_bitacoras/inactivos")
-@permission_required(MODULO, Permiso.ADMINISTRAR)
-def list_inactive():
-    """Listado de DGT Entregas Bitácoras inactivas"""
-    return render_template(
-        "dgt_entregas_bitacoras/list.jinja2",
-        filtros=json.dumps({"estatus": "B"}),
-        titulo="DGT Entregas Bitácoras inactivas",
-        estatus="B",
-    )
-
-
 @dgt_entregas_bitacoras.route("/dgt_entregas_bitacoras/<dgt_entrega_bitacora_id>")
 def detail(dgt_entrega_bitacora_id):
     """Detalle de una DGT Entrega Bitácora"""

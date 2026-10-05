@@ -35,10 +35,10 @@
     {% call detail.card('Muestra del payload') %}
         <pre class="mb-0"><code>{{ payload_muestra }}</code></pre>
     {% endcall %}
-    {% if current_user.can_view('DGT PLATAFORMAS BITACORAS') and dgt_plataforma_endpoint.estatus == 'A' %}
+    {% if current_user.can_view('DGT PLATAFORMAS ENDPOINTS BITACORAS') and dgt_plataforma_endpoint.estatus == 'A' %}
         {% call detail.card('Bitácoras') %}
-            <!-- Datatable DGT Plataformas Bitácoras -->
-            <table id="dgt_plataformas_bitacoras_datatable" class="table display nowrap" style="width:100%">
+            <!-- Datatable DGT Plataformas Endpoints Bitácoras -->
+            <table id="dgt_plataformas_endpoints_bitacoras_datatable" class="table display nowrap" style="width:100%">
                 <thead>
                     <tr>
                         <th>Creado</th>
@@ -57,21 +57,21 @@
         {% if dgt_plataforma_endpoint.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar DGT Plataforma Endpoint ' + dgt_plataforma_endpoint.descripcion + '?') }}{% endif %}
         {% if dgt_plataforma_endpoint.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar DGT Plataforma Endpoint ' + dgt_plataforma_endpoint.descripcion + '?') }}{% endif %}
     {% endif %}
-    {% if current_user.can_view('DGT PLATAFORMAS BITACORAS') and dgt_plataforma_endpoint.estatus == 'A' %}
+    {% if current_user.can_view('DGT PLATAFORMAS ENDPOINTS BITACORAS') and dgt_plataforma_endpoint.estatus == 'A' %}
         <script src="/static/js/datatables-constructor.js"></script>
         <script>
-            // DataTable DGT Plataformas Bitácoras
+            // DataTable DGT Plataformas Endpoints Bitácoras
             const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
-            let configDTDgtPlataformasBitacoras = constructorDataTable.config();
-            configDTDgtPlataformasBitacoras['ajax']['url'] = "{{ url_for('dgt_plataformas_bitacoras.datatable_json') }}";
-            configDTDgtPlataformasBitacoras['ajax']['data'] = { 'estatus': "A", 'dgt_plataforma_endpoint_id': "{{ dgt_plataforma_endpoint.id }}" };
-            configDTDgtPlataformasBitacoras['columns'] = [
+            let configDTDgtPlataformasEndpointsBitacoras = constructorDataTable.config();
+            configDTDgtPlataformasEndpointsBitacoras['ajax']['url'] = "{{ url_for('dgt_plataformas_endpoints_bitacoras.datatable_json') }}";
+            configDTDgtPlataformasEndpointsBitacoras['ajax']['data'] = { 'estatus': "A", 'dgt_plataforma_endpoint_id': "{{ dgt_plataforma_endpoint.id }}" };
+            configDTDgtPlataformasEndpointsBitacoras['columns'] = [
                 { data: "detalle" },
                 { data: "respuesta_codigo" },
                 { data: "respuesta_exitosa" },
                 { data: "respuesta_mensaje" }
             ];
-            configDTDgtPlataformasBitacoras['columnDefs'] = [
+            configDTDgtPlataformasEndpointsBitacoras['columnDefs'] = [
                 {
                     targets: 0, // detalle
                     data: null,
@@ -87,7 +87,7 @@
                     }
                 }
             ];
-            $('#dgt_plataformas_bitacoras_datatable').DataTable(configDTDgtPlataformasBitacoras);
+            $('#dgt_plataformas_endpoints_bitacoras_datatable').DataTable(configDTDgtPlataformasEndpointsBitacoras);
         </script>
     {% endif %}
 {% endblock %}
