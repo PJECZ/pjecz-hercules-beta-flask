@@ -6,6 +6,9 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('DGT PLATAFORMAS ENDPOINTS') %}
+            {{ topbar.button('Plataformas Endpoints', url_for('dgt_plataformas_endpoints.list_active'), 'mdi mdi-api') }}
+        {% endif %}
         {% if current_user.can_admin('DGT PLATAFORMAS') %}
             {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_plataformas.list_inactive')) }}{% endif %}
             {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_plataformas.list_active')) }}{% endif %}

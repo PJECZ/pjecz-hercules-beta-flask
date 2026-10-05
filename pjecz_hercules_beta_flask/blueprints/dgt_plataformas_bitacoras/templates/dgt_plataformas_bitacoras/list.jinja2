@@ -6,6 +6,9 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('DGT PLATAFORMAS') %}
+            {{ topbar.button('Plataformas', url_for('dgt_plataformas.list_active'), 'mdi mdi-ship-wheel') }}
+        {% endif %}
         {% if current_user.can_admin('DGT PLATAFORMAS BITACORAS') %}
             {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_plataformas_bitacoras.list_inactive')) }}{% endif %}
             {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_plataformas_bitacoras.list_active')) }}{% endif %}

@@ -6,6 +6,9 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('DGT RUTAS') %}
+            {{ topbar.button('Rutas', url_for('dgt_rutas.list_active'), 'mdi mdi-source-branch') }}
+        {% endif %}
         {{ topbar.button_dashboard('Por año del expediente', url_for('dgt_entregas.dashboard_por_expediente_anio')) }}
         {{ topbar.button_dashboard('Por archivo actualizado', url_for('dgt_entregas.dashboard_por_archivo_actualizado')) }}
         {% if current_user.can_admin('DGT ENTREGAS') %}
