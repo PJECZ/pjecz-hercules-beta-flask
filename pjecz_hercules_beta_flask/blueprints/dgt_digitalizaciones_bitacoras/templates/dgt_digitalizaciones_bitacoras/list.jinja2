@@ -6,9 +6,8 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
-        {% if current_user.can_admin('DGT DIGITALIZACIONES BITACORAS') %}
-            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('dgt_digitalizaciones_bitacoras.list_inactive')) }}{% endif %}
-            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('dgt_digitalizaciones_bitacoras.list_active')) }}{% endif %}
+        {% if current_user.can_view('DGT DIGITALIZACIONES') %}
+            {{ topbar.button('Digitalizaciones', url_for('dgt_digitalizaciones.list_active'), 'mdi mdi-scanner') }}
         {% endif %}
     {% endcall %}
 {% endblock %}

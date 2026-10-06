@@ -78,18 +78,6 @@ def list_active():
     )
 
 
-@dgt_digitalizaciones_bitacoras.route("/dgt_digitalizaciones_bitacoras/inactivos")
-@permission_required(MODULO, Permiso.ADMINISTRAR)
-def list_inactive():
-    """Listado de DGT Digitalizaciones Bitácoras inactivas"""
-    return render_template(
-        "dgt_digitalizaciones_bitacoras/list.jinja2",
-        filtros=json.dumps({"estatus": "B"}),
-        titulo="DGT Digitalizaciones Bitácoras inactivas",
-        estatus="B",
-    )
-
-
 @dgt_digitalizaciones_bitacoras.route("/dgt_digitalizaciones_bitacoras/<dgt_digitalizacion_bitacora_id>")
 def detail(dgt_digitalizacion_bitacora_id):
     """Detalle de una DGT Digitalización Bitácora"""

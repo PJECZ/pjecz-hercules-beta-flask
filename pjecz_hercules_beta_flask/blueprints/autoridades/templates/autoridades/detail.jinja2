@@ -55,6 +55,13 @@
                 {% else %}
                     {{ detail.label_value('Materia', autoridad.materia.nombre) }}
                 {% endif %}
+                {% if autoridad.dgt_plataforma_autoridad and autoridad.dgt_plataforma_autoridad.estatus == 'A' %}
+                    {% if current_user.can_view("DGT PLATAFORMAS") %}
+                        {{ detail.label_value('DGT Plataforma', autoridad.dgt_plataforma_autoridad.dgt_plataforma.descripcion, url_for('dgt_plataformas.detail', dgt_plataforma_id=autoridad.dgt_plataforma_autoridad.dgt_plataforma_id)) }}
+                    {% else %}
+                        {{ detail.label_value('DGT Plataforma', autoridad.dgt_plataforma_autoridad.dgt_plataforma.descripcion) }}
+                    {% endif %}
+                {% endif %}
                 {{ detail.label_value('Ó. Jurisdiccional', autoridad.organo_jurisdiccional) }}
                 {{ detail.label_value('C. de Audiencias', autoridad.audiencia_categoria) }}
                 {{ detail.label_value('Sede (AJG)', autoridad.sede) }}

@@ -152,7 +152,7 @@ def datatable_json():
 def list_active():
     """Listado de DGT Entregas activas"""
     filtros = {"estatus": "A"}
-    titulo = "Entregas"
+    titulo = "DGT Entregas"
     # Si viene el año del expediente, filtrar por éste
     if "expediente_anio" in request.args:
         try:
@@ -211,7 +211,7 @@ def list_inactive():
     return render_template(
         "dgt_entregas/list.jinja2",
         filtros=json.dumps({"estatus": "B"}),
-        titulo="Entregas inactivas",
+        titulo="DGT Entregas inactivas",
         estatus="B",
         eventos=DgtEntregaBitacora.EVENTOS,
         ultimo_evento="",
@@ -228,7 +228,7 @@ def detail(dgt_entrega_id):
         flash("ID de DGT Entrega inválido", "warning")
         return redirect(url_for("dgt_entregas.list_active"))
     dgt_entrega = DgtEntrega.query.get_or_404(dgt_entrega_id)
-    titulo = f"Entrega {dgt_entrega.autoridad.clave}"
+    titulo = f"DGT Entrega {dgt_entrega.autoridad.clave}"
     if dgt_entrega.expediente:
         titulo = f"{titulo} {dgt_entrega.expediente}"
     if dgt_entrega.descripcion:

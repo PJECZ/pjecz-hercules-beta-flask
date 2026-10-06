@@ -150,7 +150,7 @@ def datatable_json():
 def list_active():
     """Listado de DGT Digitalizaciones activas"""
     filtros = {"estatus": "A"}
-    titulo = "Digitalizaciones"
+    titulo = "DGT Digitalizaciones"
     # Si viene el año del expediente, filtrar por éste
     if "expediente_anio" in request.args:
         try:
@@ -204,7 +204,7 @@ def list_inactive():
     return render_template(
         "dgt_digitalizaciones/list.jinja2",
         filtros=json.dumps({"estatus": "B"}),
-        titulo="Digitalizaciones inactivas",
+        titulo="DGT Digitalizaciones inactivas",
         estatus="B",
         eventos=DgtDigitalizacionBitacora.EVENTOS,
         ultimo_evento="",
@@ -220,7 +220,7 @@ def detail(dgt_digitalizacion_id):
         flash("ID de DGT Digitalización inválido", "warning")
         return redirect(url_for("dgt_digitalizaciones.list_active"))
     dgt_digitalizacion = DgtDigitalizacion.query.get_or_404(dgt_digitalizacion_id)
-    titulo = f"Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"
+    titulo = f"DGT Digitalización {dgt_digitalizacion.autoridad.clave} {dgt_digitalizacion.expediente}"
     if dgt_digitalizacion.descripcion:
         titulo = f"{titulo} {dgt_digitalizacion.descripcion}"
     return render_template(
