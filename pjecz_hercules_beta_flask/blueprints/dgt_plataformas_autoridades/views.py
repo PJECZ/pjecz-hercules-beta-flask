@@ -71,21 +71,21 @@ def datatable_json():
     # Elaborar datos para DataTable
     puede_quitar = current_user.can_edit(MODULO)
     data = []
-    for resultado in registros:
+    for item in registros:
         data.append(
             {
                 "detalle": {
-                    "autoridad_clave": resultado.autoridad.clave,
-                    "url": url_for("dgt_plataformas_autoridades.detail", dgt_plataforma_autoridad_id=resultado.id),
+                    "autoridad_clave": item.autoridad.clave,
+                    "url": url_for("dgt_plataformas_autoridades.detail", dgt_plataforma_autoridad_id=item.id),
                 },
-                "autoridad_descripcion_corta": resultado.autoridad.descripcion_corta,
-                "distrito_nombre_corto": resultado.autoridad.distrito.nombre_corto,
-                "dgt_plataforma_descripcion": resultado.dgt_plataforma.descripcion,
+                "autoridad_descripcion_corta": item.autoridad.descripcion_corta,
+                "distrito_nombre_corto": item.autoridad.distrito.nombre_corto,
+                "dgt_plataforma_descripcion": item.dgt_plataforma.descripcion,
                 "quitar": {
-                    "autoridad_clave": resultado.autoridad.clave,
+                    "autoridad_clave": item.autoridad.clave,
                     "url": (
-                        url_for("dgt_plataformas_autoridades.remove_json", dgt_plataforma_autoridad_id=resultado.id)
-                        if puede_quitar and resultado.estatus == "A"
+                        url_for("dgt_plataformas_autoridades.remove_json", dgt_plataforma_autoridad_id=item.id)
+                        if puede_quitar and item.estatus == "A"
                         else ""
                     ),
                 },

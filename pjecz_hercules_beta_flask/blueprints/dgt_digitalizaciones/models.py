@@ -44,6 +44,7 @@ class DgtDigitalizacion(database.Model, UniversalMixin):
     expediente_num: Mapped[int]
     descripcion: Mapped[Optional[str]] = mapped_column(String(256))
     es_anomalo: Mapped[bool] = mapped_column(default=False)
+    entregado: Mapped[Optional[datetime]]
 
     # Columnas con el último evento de la bitácora, actualizadas por un trigger
     ultimo_evento: Mapped[str] = mapped_column(String(24))

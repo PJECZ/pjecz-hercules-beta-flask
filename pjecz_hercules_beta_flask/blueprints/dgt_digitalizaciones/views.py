@@ -243,6 +243,7 @@ def get_totales_por_expediente_anio_json():
             Materia.nombre.label("materia"),
             DgtDigitalizacion.expediente_anio.label("anio"),
             func.count(DgtDigitalizacion.id).label("total"),
+            func.count(DgtDigitalizacion.entregado).label("entregados_total"),
         )
         .select_from(
             DgtDigitalizacion,
@@ -278,6 +279,7 @@ def get_totales_por_expediente_anio_json():
                 "materia_nombre": row.materia,
                 "anio": row.anio,
                 "total": row.total,
+                "entregado_total": row.entregados_total,
             }
             for row in consulta
         ],
@@ -315,6 +317,7 @@ def get_totales_por_materia_por_archivo_actualizado_json():
             Materia.nombre.label("materia"),
             fecha.label("fecha"),
             func.count(DgtDigitalizacion.id).label("total"),
+            func.count(DgtDigitalizacion.entregado).label("entregados_total"),
         )
         .select_from(
             DgtDigitalizacion,
@@ -352,6 +355,7 @@ def get_totales_por_materia_por_archivo_actualizado_json():
                 "materia_nombre": row.materia,
                 "fecha": row.fecha.isoformat(),
                 "total": row.total,
+                "entregados_total": row.entregados_total,
             }
             for row in consulta
         ],

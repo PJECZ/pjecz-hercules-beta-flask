@@ -82,17 +82,17 @@ def datatable_json():
     total = consulta.count()
     # Elaborar datos para DataTable
     data = []
-    for resultado in registros:
+    for item in registros:
         data.append(
             {
                 "detalle": {
-                    "clave": resultado.clave,
-                    "url": url_for("dgt_rutas.detail", dgt_ruta_id=resultado.id),
+                    "clave": item.clave,
+                    "url": url_for("dgt_rutas.detail", dgt_ruta_id=item.id),
                 },
-                "dgt_deposito_clave": resultado.dgt_deposito.clave,
-                "autoridad_clave": resultado.autoridad_clave,
-                "dgt_tipo_clave": resultado.dgt_tipo.clave,
-                "directorio": resultado.directorio,
+                "dgt_deposito_clave": item.dgt_deposito.clave,
+                "autoridad_clave": item.autoridad_clave,
+                "dgt_tipo_clave": item.dgt_tipo.clave,
+                "directorio": item.directorio,
             }
         )
     # Entregar JSON
