@@ -48,19 +48,19 @@ def datatable_json():
     total = consulta.count()
     # Elaborar datos para DataTable
     data = []
-    for resultado in registros:
+    for item in registros:
         data.append(
             {
                 "detalle": {
-                    "evento": resultado.evento,
+                    "evento": item.evento,
                     "url": url_for(
                         "dgt_digitalizaciones_bitacoras.detail",
-                        dgt_digitalizacion_bitacora_id=resultado.id,
+                        dgt_digitalizacion_bitacora_id=item.id,
                     ),
                 },
-                "archivo_tamano": resultado.archivo_tamano,
-                "archivo_actualizado": resultado.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if resultado.archivo_actualizado else "",
-                "creado": resultado.creado.strftime("%Y-%m-%d %H:%M") if resultado.creado else "",
+                "archivo_tamano": item.archivo_tamano,
+                "archivo_actualizado": item.archivo_actualizado.strftime("%Y-%m-%d %H:%M") if item.archivo_actualizado else "",
+                "creado": item.creado.strftime("%Y-%m-%d %H:%M") if item.creado else "",
             }
         )
     # Entregar JSON
