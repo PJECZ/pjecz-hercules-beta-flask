@@ -67,22 +67,37 @@
             totales.filter((r) => r.materia_nombre === materia).reduce((suma, r) => suma + r.total, 0)
           );
 
+          // Total entregado acumulado de todos los años por materia
+          const entregadosPorMateria = materias.map((materia) =>
+            totales.filter((r) => r.materia_nombre === materia).reduce((suma, r) => suma + r.entregado_total, 0)
+          );
+
+          // Las barras se enciman (grouped: false) y la de menor order se dibuja por delante
           new Chart(document.getElementById("dashboard_chart"), {
             type: "bar",
             data: {
               labels: materias,
               datasets: [
                 {
+                  label: "Entregado",
+                  data: entregadosPorMateria,
+                  backgroundColor: "rgba(75, 192, 192, 0.9)",
+                  grouped: false,
+                  order: 1,
+                },
+                {
                   label: "Total",
                   data: totalesPorMateria,
-                  backgroundColor: "rgba(54, 162, 235, 0.7)",
+                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+                  grouped: false,
+                  order: 2,
                 },
               ],
             },
             options: {
               responsive: true,
               plugins: {
-                legend: { display: false },
+                legend: { display: true },
                 title: { display: true, text: "Total de digitalizaciones por materia" },
               },
               scales: {
