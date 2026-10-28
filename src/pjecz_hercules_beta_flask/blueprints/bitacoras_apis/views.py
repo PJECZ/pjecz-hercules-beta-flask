@@ -122,6 +122,7 @@ def get_totales_por_usuario_json():
             Usuario.id.label("usuario_id"),
             Usuario.email.label("usuario_email"),
             Usuario.api_key_cuota_diaria.label("api_key_cuota_diaria"),
+            Usuario.api_key_expiracion.label("api_key_expiracion"),
             Autoridad.clave.label("autoridad_clave"),
             total,
         )
@@ -145,6 +146,7 @@ def get_totales_por_usuario_json():
             Usuario.id,
             Usuario.email,
             Usuario.api_key_cuota_diaria,
+            Usuario.api_key_expiracion,
             Autoridad.clave,
         )
         .order_by(
@@ -164,6 +166,7 @@ def get_totales_por_usuario_json():
                 "usuario_email": row.usuario_email,
                 "autoridad_clave": row.autoridad_clave,
                 "api_key_cuota_diaria": row.api_key_cuota_diaria,
+                "api_key_expiracion": row.api_key_expiracion.strftime("%Y-%m-%d") if row.api_key_expiracion else None,
                 "total": row.total,
             }
             for row in consulta

@@ -38,6 +38,7 @@
                     <th>Usuario</th>
                     <th>Autoridad</th>
                     <th>Cuota diaria</th>
+                    <th>Expiración</th>
                     <th>Promedio diario</th>
                     <th>Total</th>
                 </tr>
@@ -170,6 +171,15 @@
                   render: (cuota) => cuota ?? "",
                 },
                 {
+                  data: "api_key_expiracion",
+                  render: (expiracion, type) => {
+                    if (!expiracion) return "";
+                    // Resaltar cuando la API key ya expiró
+                    if (type !== "display" || expiracion >= fechaATexto(new Date())) return expiracion;
+                    return `<span class="text-danger">${expiracion}</span>`;
+                  },
+                },
+                {
                   data: "promedio_diario",
                   render: (promedio, type, row) => {
                     // Resaltar cuando el promedio diario supera la cuota diaria
@@ -179,7 +189,7 @@
                 },
                 { data: "total" },
               ],
-              order: [[4, "desc"]],
+              order: [[5, "desc"]],
               responsive: true,
               scrollX: true,
               paging: true,
