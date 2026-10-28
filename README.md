@@ -28,6 +28,8 @@ Crear un archivo para las variables de entorno
 cp .env.example .env
 ```
 
+Defina las variables de entorno de acuerdo a sus recursos.
+
 Crear un archivo `.bashrc` que facilite la carga de las variables de entorno y del entorno Python
 
 ```bash
@@ -101,12 +103,12 @@ then
     echo "-- Python Virtual Environment"
     source .venv/bin/activate
     echo "   $(python3 --version)"
-    export PYTHONPATH=$(pwd)
+    export PYTHONPATH=$(pwd)/src
     echo "   PYTHONPATH: ${PYTHONPATH}"
     echo
     echo "-- Command Line Interface"
-    alias cli="python3 cli/app.py"
-    echo "   cli = python3 cli/app.py"
+    alias cli="python3 src/pjecz_hercules_beta_flask/cli/app.py"
+    echo "   cli = python3 src/pjecz_hercules_beta_flask/cli/app.py"
     echo
     echo "-- Flask 127.0.0.1:5000"
     alias arrancar="flask run --port=5000"
