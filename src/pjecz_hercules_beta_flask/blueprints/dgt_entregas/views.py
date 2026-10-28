@@ -245,6 +245,17 @@ def detail(dgt_entrega_id):
 def get_totales_por_expediente_anio_json():
     """Obtener los totales de DGT Entregas por materia y por año en JSON"""
 
+    # Si viene el ID del depósito, validarlo para filtrar por éste
+    dgt_deposito_id = None
+    if "dgt_deposito_id" in request.args:
+        dgt_deposito_id = safe_uuid(request.args["dgt_deposito_id"])
+        if dgt_deposito_id == "":
+            return {
+                "success": False,
+                "message": "ID de DGT Depósito inválido",
+                "totales": [],
+            }
+
     # Consultar los totales por materia por año
     consulta = (
         database.session.query(
@@ -265,7 +276,15 @@ def get_totales_por_expediente_anio_json():
         .where(
             DgtEntrega.estatus == "A",
         )
-        .group_by(
+    )
+
+    # Si viene el ID del depósito, filtrar por las rutas de éste
+    if dgt_deposito_id:
+        consulta = consulta.join(DgtEntrega.dgt_ruta).where(DgtRuta.dgt_deposito_id == dgt_deposito_id)
+
+    # Agrupar y ordenar
+    consulta = (
+        consulta.group_by(
             Materia.id,
             Materia.nombre,
             DgtEntrega.expediente_anio,
@@ -314,6 +333,17 @@ def get_totales_por_materia_por_archivo_actualizado_json():
             "totales": [],
         }
 
+    # Si viene el ID del depósito, validarlo para filtrar por éste
+    dgt_deposito_id = None
+    if "dgt_deposito_id" in request.args:
+        dgt_deposito_id = safe_uuid(request.args["dgt_deposito_id"])
+        if dgt_deposito_id == "":
+            return {
+                "success": False,
+                "message": "ID de DGT Depósito inválido",
+                "totales": [],
+            }
+
     # Tomar solo la fecha de archivo_actualizado para agrupar
     fecha = cast(DgtEntrega.archivo_actualizado, Date)
 
@@ -339,7 +369,15 @@ def get_totales_por_materia_por_archivo_actualizado_json():
             DgtEntrega.archivo_actualizado >= fecha_inicial,
             DgtEntrega.archivo_actualizado < fecha_final + timedelta(days=1),
         )
-        .group_by(
+    )
+
+    # Si viene el ID del depósito, filtrar por las rutas de éste
+    if dgt_deposito_id:
+        consulta = consulta.join(DgtEntrega.dgt_ruta).where(DgtRuta.dgt_deposito_id == dgt_deposito_id)
+
+    # Agrupar y ordenar
+    consulta = (
+        consulta.group_by(
             Materia.id,
             Materia.nombre,
             fecha,
