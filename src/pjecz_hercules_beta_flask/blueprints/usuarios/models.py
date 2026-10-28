@@ -63,6 +63,7 @@ class Usuario(database.Model, UserMixin, UniversalMixin):
     # Columnas que NO deben ser expuestas
     api_key: Mapped[Optional[str]] = mapped_column(String(128))
     api_key_expiracion: Mapped[Optional[datetime]]
+    api_key_cuota_diaria: Mapped[Optional[int]]
     contrasena: Mapped[Optional[str]] = mapped_column(String(256))
 
     # Hijos
@@ -73,16 +74,11 @@ class Usuario(database.Model, UserMixin, UniversalMixin):
     arc_remesas_bitacoras: Mapped[list["ArcRemesaBitacora"]] = relationship(back_populates="usuario")
     bitacoras: Mapped[list["Bitacora"]] = relationship(back_populates="usuario")
     bitacoras_apis: Mapped[list["BitacoraAPI"]] = relationship(back_populates="usuario")
-    # cid_procedimientos: Mapped[list["CIDProcedimiento"]] = relationship(back_populates="usuario")
     entradas_salidas: Mapped[list["EntradaSalida"]] = relationship(back_populates="usuario")
-    # fin_vales: Mapped[list["FinVale"]] = relationship(back_populates="usuario")
-    # inv_custodias: Mapped[list["InvCustodia"]] = relationship(back_populates="usuario")
     ofi_documentos: Mapped[list["OfiDocumento"]] = relationship(back_populates="usuario")
     ofi_documentos_destinatarios: Mapped[list["OfiDocumentoDestinatario"]] = relationship(back_populates="usuario")
     ofi_plantillas: Mapped[list["OfiPlantilla"]] = relationship(back_populates="usuario")
-    # req_requisiciones: Mapped[list["ReqRequisicion"]] = relationship(back_populates="usuario")
     tareas: Mapped[list["Tarea"]] = relationship(back_populates="usuario")
-    # usuarios_nominas: Mapped[list["UsuarioNomina"]] = relationship(back_populates="usuario")
     usuarios_roles: Mapped[list["UsuarioRol"]] = relationship(back_populates="usuario")
     soportes_tickets: Mapped[list["SoporteTicket"]] = relationship(back_populates="usuario")
 

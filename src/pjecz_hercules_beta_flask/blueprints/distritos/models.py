@@ -32,8 +32,6 @@ class Distrito(database.Model, UniversalMixin):
     centros_trabajos: Mapped[list["CentroTrabajo"]] = relationship(back_populates="distrito")
     domicilios: Mapped[list["Domicilio"]] = relationship(back_populates="distrito")
     oficinas: Mapped[list["Oficina"]] = relationship(back_populates="distrito")
-    # peritos: Mapped[list["Perito"]] = relationship(back_populates="distrito")
-    # repsvm_agresores: Mapped[list["REPSVMAgresor"]] = relationship(back_populates="distrito")
 
     def __repr__(self):
         """Representación"""

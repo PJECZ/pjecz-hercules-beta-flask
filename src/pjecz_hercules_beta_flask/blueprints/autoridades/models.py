@@ -101,8 +101,6 @@ class Autoridad(database.Model, UniversalMixin):
     arc_solicitudes: Mapped[list["ArcSolicitud"]] = relationship(back_populates="autoridad")
     audiencias: Mapped[list["Audiencia"]] = relationship(back_populates="autoridad")
     autoridades_funcionarios: Mapped[list["AutoridadFuncionario"]] = relationship(back_populates="autoridad")
-    # cid_areas_autoridades: Mapped[list["CIDAreaAutoridad"]] = relationship(back_populates="autoridad")
-    # cid_procedimientos: Mapped[list["CIDProcedimiento"]] = relationship(back_populates="autoridad")
     dgt_digitalizaciones: Mapped[list["DgtDigitalizacion"]] = relationship(back_populates="autoridad")
     dgt_plataforma_autoridad: Mapped[Optional["DgtPlataformaAutoridad"]] = relationship(back_populates="autoridad")
     dgt_entregas: Mapped[list["DgtEntrega"]] = relationship(back_populates="autoridad")
@@ -113,9 +111,7 @@ class Autoridad(database.Model, UniversalMixin):
     listas_de_acuerdos: Mapped[list["ListaDeAcuerdo"]] = relationship(back_populates="autoridad")
     redam: Mapped[list["Redam"]] = relationship(back_populates="autoridad")
     sentencias: Mapped[list["Sentencia"]] = relationship(back_populates="autoridad")
-    # ubicaciones_expedientes: Mapped[list["UbicacionExpediente"]] = relationship(back_populates="autoridad")
     usuarios: Mapped[list["Usuario"]] = relationship(back_populates="autoridad")
-    vsp_digitalizaciones: Mapped[list["VspDigitalizacion"]] = relationship(back_populates="autoridad")
 
     @property
     def nombre(self):
