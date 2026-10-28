@@ -12,6 +12,7 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {{ topbar.button_dashboard('Por usuario', url_for('bitacoras_apis.dashboard_por_usuario')) }}
         {% if current_user.can_view('BITACORAS') %}
             {{ topbar.button('Bitácoras', url_for('bitacoras.list_active'), 'mdi mdi-calendar-clock') }}
         {% endif %}

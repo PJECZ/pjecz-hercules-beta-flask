@@ -3,17 +3,19 @@ Bitácoras de APIs
 """
 
 import json
+from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 
+from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.bitacoras_apis.models import BitacoraAPI
-from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
+from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
-from pjecz_hercules_beta_flask.lib.safe_string import safe_email, safe_string
 
 MODULO = "BITACORAS APIS"
 
@@ -90,3 +92,86 @@ def list_active():
         filtros=json.dumps(filtros),
         titulo=titulo,
     )
+
+
+@bitacoras_apis.route("/bitacoras_apis/obtener_totales_por_usuario")
+def get_totales_por_usuario_json():
+    """Obtener los totales de Bitácoras APIs por usuario en JSON"""
+
+    # Validar las fechas inicial y final, en formato AAAA-MM-DD
+    try:
+        fecha_inicial = date.fromisoformat(request.args["fecha_inicial"])
+        fecha_final = date.fromisoformat(request.args["fecha_final"])
+    except (KeyError, ValueError):
+        return {
+            "success": False,
+            "message": "Las fechas inicial y final son requeridas en formato AAAA-MM-DD",
+            "totales": [],
+        }
+    if fecha_inicial > fecha_final:
+        return {
+            "success": False,
+            "message": "La fecha inicial no puede ser posterior a la fecha final",
+            "totales": [],
+        }
+
+    # Consultar los totales por usuario, incluyendo todo el día de la fecha final
+    total = func.count(BitacoraAPI.id).label("total")
+    consulta = (
+        database.session.query(
+            Usuario.id.label("usuario_id"),
+            Usuario.email.label("usuario_email"),
+            Usuario.api_key_cuota_diaria.label("api_key_cuota_diaria"),
+            Autoridad.clave.label("autoridad_clave"),
+            total,
+        )
+        .select_from(
+            BitacoraAPI,
+        )
+        .join(
+            Usuario,
+            BitacoraAPI.usuario_id == Usuario.id,
+        )
+        .join(
+            Autoridad,
+            Usuario.autoridad_id == Autoridad.id,
+        )
+        .where(
+            BitacoraAPI.estatus == "A",
+            BitacoraAPI.creado >= fecha_inicial,
+            BitacoraAPI.creado < fecha_final + timedelta(days=1),
+        )
+        .group_by(
+            Usuario.id,
+            Usuario.email,
+            Usuario.api_key_cuota_diaria,
+            Autoridad.clave,
+        )
+        .order_by(
+            total.desc(),
+            Usuario.email,
+        )
+        .all()
+    )
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por usuario",
+        "totales": [
+            {
+                "usuario_id": row.usuario_id,
+                "usuario_email": row.usuario_email,
+                "autoridad_clave": row.autoridad_clave,
+                "api_key_cuota_diaria": row.api_key_cuota_diaria,
+                "total": row.total,
+            }
+            for row in consulta
+        ],
+    }
+
+
+@bitacoras_apis.route("/bitacoras_apis/dashboard_por_usuario")
+def dashboard_por_usuario():
+    """Tablero de Bitácoras APIs por usuario"""
+    return render_template("bitacoras_apis/dashboard_por_usuario.jinja2")

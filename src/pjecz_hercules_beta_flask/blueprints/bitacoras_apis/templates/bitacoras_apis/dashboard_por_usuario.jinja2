@@ -1,0 +1,209 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block custom_head %}
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block title %}Bitácoras de APIs por usuario{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Bitácoras de APIs por usuario') %}
+        {{ topbar.button_previous('Bitácoras de APIs', url_for('bitacoras_apis.list_active')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    <!-- Botones para elegir el periodo -->
+    <div class="mb-3">
+        <div class="btn-group" role="group" aria-label="Periodo">
+            <button type="button" class="btn btn-outline-primary boton-periodo" data-dias="1">Hoy</button>
+            <button type="button" class="btn btn-outline-primary boton-periodo" data-dias="7">7 días</button>
+            <button type="button" class="btn btn-outline-primary boton-periodo" data-dias="30">30 días</button>
+            <button type="button" class="btn btn-outline-primary boton-periodo" data-dias="90">90 días</button>
+        </div>
+        <span id="dashboard_periodo" class="ms-3 text-muted"></span>
+    </div>
+    {% call detail.card(title='Gráfico de los usuarios con más peticiones') %}
+        <div id="dashboard_chart_contenedor" style="position: relative; height: 420px;">
+            <canvas id="dashboard_chart"></canvas>
+        </div>
+    {% endcall %}
+    {% call detail.card(title='Totales por usuario') %}
+        <table id="dashboard_datatable" class="table display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Autoridad</th>
+                    <th>Cuota diaria</th>
+                    <th>Promedio diario</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script>
+      const totalesUrl = "{{ url_for('bitacoras_apis.get_totales_por_usuario_json') }}";
+      const listActiveUrl = "{{ url_for('bitacoras_apis.list_active') }}";
+
+      // Cantidad máxima de usuarios en el gráfico, la tabla los muestra todos
+      const maximoUsuariosGrafico = 20;
+
+      let grafico = null;
+      let tabla = null;
+
+      // Convertir una fecha a texto AAAA-MM-DD en hora local
+      function fechaATexto(fecha) {
+        const anio = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+        const dia = String(fecha.getDate()).padStart(2, "0");
+        return `${anio}-${mes}-${dia}`;
+      }
+
+      // Cargar el gráfico y la tabla de los últimos N días, incluyendo hoy
+      function cargarDashboard(dias) {
+        const fechaFinal = new Date();
+        const fechaInicial = new Date(fechaFinal);
+        fechaInicial.setDate(fechaFinal.getDate() - (dias - 1));
+
+        // Marcar el botón activo
+        document.querySelectorAll(".boton-periodo").forEach((boton) => {
+          boton.classList.toggle("active", Number(boton.dataset.dias) === dias);
+        });
+        document.getElementById("dashboard_periodo").textContent =
+          `Del ${fechaATexto(fechaInicial)} al ${fechaATexto(fechaFinal)}`;
+
+        const params = new URLSearchParams({
+          fecha_inicial: fechaATexto(fechaInicial),
+          fecha_final: fechaATexto(fechaFinal),
+        });
+
+        fetch(`${totalesUrl}?${params}`, {
+          method: "GET",
+          headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+        })
+          .then((response) => response.json())
+          .then((json) => {
+            if (!json.success) {
+              console.error("Error al obtener los totales:", json.message);
+              return;
+            }
+            // Ya vienen ordenados por total de mayor a menor
+            const totales = json.totales;
+
+            // --- Gráfico de barras horizontales ---
+
+            const top = totales.slice(0, maximoUsuariosGrafico);
+
+            // Ajustar la altura del gráfico a la cantidad de barras
+            document.getElementById("dashboard_chart_contenedor").style.height = `${Math.max(160, top.length * 28 + 80)}px`;
+
+            if (grafico) grafico.destroy();
+            grafico = new Chart(document.getElementById("dashboard_chart"), {
+              type: "bar",
+              data: {
+                labels: top.map((r) => r.usuario_email),
+                datasets: [
+                  {
+                    label: "Total",
+                    data: top.map((r) => r.total),
+                    backgroundColor: "rgb(54, 162, 235)",
+                  },
+                ],
+              },
+              options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  title: {
+                    display: true,
+                    text: `Los ${top.length} usuarios con más peticiones a las APIs`,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      afterLabel: (item) => {
+                        const r = top[item.dataIndex];
+                        const cuota = r.api_key_cuota_diaria ?? "Sin cuota";
+                        return `Autoridad: ${r.autoridad_clave}\nCuota diaria: ${cuota}`;
+                      },
+                    },
+                  },
+                },
+                scales: {
+                  x: { beginAtZero: true, title: { display: true, text: "Total" }, ticks: { precision: 0 } },
+                },
+              },
+            });
+
+            // --- DataTable ---
+
+            const data = totales.map((r) => ({
+              ...r,
+              promedio_diario: Math.round((r.total / dias) * 10) / 10,
+            }));
+
+            if (tabla) {
+              tabla.clear().rows.add(data).draw();
+              return;
+            }
+            tabla = $("#dashboard_datatable").DataTable({
+              data,
+              columns: [
+                {
+                  data: "usuario_email",
+                  render: (email, type, row) => {
+                    if (type !== "display") return email;
+                    const params = new URLSearchParams({ usuario_id: row.usuario_id });
+                    return `<a href="${listActiveUrl}?${params}">${email}</a>`;
+                  },
+                },
+                { data: "autoridad_clave" },
+                {
+                  data: "api_key_cuota_diaria",
+                  render: (cuota) => cuota ?? "",
+                },
+                {
+                  data: "promedio_diario",
+                  render: (promedio, type, row) => {
+                    // Resaltar cuando el promedio diario supera la cuota diaria
+                    if (type !== "display" || !row.api_key_cuota_diaria || promedio <= row.api_key_cuota_diaria) return promedio;
+                    return `<span class="text-danger fw-bold">${promedio}</span>`;
+                  },
+                },
+                { data: "total" },
+              ],
+              order: [[4, "desc"]],
+              responsive: true,
+              scrollX: true,
+              paging: true,
+              pageLength: 25,
+              language: {
+                search: "Buscar:",
+                zeroRecords: "No se encontraron registros",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ usuarios",
+                infoEmpty: "Sin registros",
+                infoFiltered: "(filtrado de _MAX_ usuarios)",
+                lengthMenu: "Mostrar _MENU_ usuarios",
+                paginate: { first: "Primera", last: "Última", next: "Siguiente", previous: "Anterior" },
+              },
+            });
+          })
+          .catch((error) => console.error("Error al cargar el tablero:", error));
+      }
+
+      // Botones para cambiar el periodo
+      document.querySelectorAll(".boton-periodo").forEach((boton) => {
+        boton.addEventListener("click", () => cargarDashboard(Number(boton.dataset.dias)));
+      });
+
+      // Por defecto los últimos 7 días
+      cargarDashboard(7);
+    </script>
+{% endblock %}
