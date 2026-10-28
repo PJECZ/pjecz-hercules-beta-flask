@@ -19,6 +19,7 @@ poetry.lock
 __pycache__/
 *.egg-info/
 
+/.ruff_cache/
 /.venv/
 /venv/
 

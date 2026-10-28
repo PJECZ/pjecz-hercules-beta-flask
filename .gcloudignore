@@ -22,6 +22,7 @@ __pycache__/
 /.idea
 /.git
 /.github
+/.ruff_cache
 /.venv
 /.vscode
 /cli
