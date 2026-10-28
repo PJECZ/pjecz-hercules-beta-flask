@@ -7,16 +7,16 @@ from rich.table import Table
 from sqlalchemy import select
 from typer import Exit, Option, Typer
 
-from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.ofi_plantillas.models import OfiPlantilla
 from pjecz_hercules_beta_flask.blueprints.roles.models import Rol
 from pjecz_hercules_beta_flask.blueprints.usuarios.models import Usuario
 from pjecz_hercules_beta_flask.blueprints.usuarios_roles.models import UsuarioRol
 from pjecz_hercules_beta_flask.config.extensions import database
+from pjecz_hercules_beta_flask.main import app
 
 # Inicializar la aplicación
-app = create_app()
+# app = create_app()
 app.app_context().push()
 
 ofi_plantillas = Typer()

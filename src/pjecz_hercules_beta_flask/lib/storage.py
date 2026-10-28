@@ -109,7 +109,6 @@ Tenga en cuenta que...
 
 """
 
-import datetime
 import locale
 import re
 from datetime import date, datetime

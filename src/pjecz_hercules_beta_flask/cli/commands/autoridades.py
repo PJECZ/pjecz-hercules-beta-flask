@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from rich.console import Console
 from typer import Typer
 
-from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
+from pjecz_hercules_beta_flask.main import app
 
 # Lista de organismos jurisdiccionales que tienen glosas
 ORGANOS_JURISDICCIONALES_CON_GLOSAS = [
@@ -24,7 +24,7 @@ load_dotenv()
 DEPLOYMENT_ENVIRONMENT = os.getenv("DEPLOYMENT_ENVIRONMENT", "DEVELOPMENT").upper()
 
 # Inicializar la aplicación
-app = create_app()
+# app = create_app()
 app.app_context().push()
 
 autoridades = Typer()

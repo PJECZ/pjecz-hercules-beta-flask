@@ -2,9 +2,9 @@
 Safe String
 """
 
-from datetime import date
 import re
 import uuid
+from datetime import date
 
 from unidecode import unidecode
 

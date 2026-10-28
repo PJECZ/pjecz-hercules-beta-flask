@@ -15,7 +15,6 @@ from rich.progress import Progress
 from sqlalchemy import text
 from typer import Typer
 
-from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.blueprints.dgt_depositos.models import DgtDepositos
 from pjecz_hercules_beta_flask.blueprints.dgt_rutas.models import DgtRuta
@@ -34,6 +33,7 @@ from pjecz_hercules_beta_flask.blueprints.usuarios_roles.models import UsuarioRo
 from pjecz_hercules_beta_flask.config.extensions import database, pwd_context
 from pjecz_hercules_beta_flask.lib.pwgen import generar_contrasena
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_email, safe_string
+from pjecz_hercules_beta_flask.main import app
 
 # Rutas a los archivos CSV
 AUTORIDADES_CSV = "seed/autoridades.csv"
@@ -67,7 +67,7 @@ PRODUCTION_DB_PORT = int(os.getenv("PRODUCTION_DB_PORT", "5432"))
 PRODUCTION_DB_NAME = os.getenv("PRODUCTION_DB_NAME")
 
 # Inicializar la aplicación
-app = create_app()
+# app = create_app()
 app.app_context().push()
 
 db = Typer()

@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 from rich.console import Console
 from typer import Typer
 
-from pjecz_hercules_beta_flask.app import create_app
 from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
+from pjecz_hercules_beta_flask.main import app
 
 # Listado de módulos en el menú principal
 MODULOS_EN_NAVEGACION = [
@@ -39,7 +39,7 @@ load_dotenv()
 DEPLOYMENT_ENVIRONMENT = os.getenv("DEPLOYMENT_ENVIRONMENT", "DEVELOPMENT").upper()
 
 # Inicializar la aplicación
-app = create_app()
+# app = create_app()
 app.app_context().push()
 
 modulos = Typer()
