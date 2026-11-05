@@ -470,7 +470,7 @@ def get_totales_por_materia_por_archivo_actualizado_json():
     if dgt_deposito_id:
         consulta = consulta.join(DgtDigitalizacion.dgt_ruta).where(DgtRuta.dgt_deposito_id == dgt_deposito_id)
     elif dgt_ruta_id:
-        consulta = consulta.where(DgtEntrega.dgt_ruta_id == dgt_ruta_id)
+        consulta = consulta.where(DgtDigitalizacion.dgt_ruta_id == dgt_ruta_id)
 
     # Agrupar y ordenar
     consulta = (
