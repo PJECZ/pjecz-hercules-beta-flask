@@ -241,6 +241,71 @@ def detail(dgt_entrega_id):
     )
 
 
+@dgt_entregas.route("/dgt_entregas/obtener_totales_por_autoridad")
+def get_totales_por_autoridad_json():
+    """Obtener los totales de DGT Entregas por autoridad en JSON"""
+
+    # Si viene el ID del depósito, validarlo para filtrar por éste
+    dgt_deposito_id = None
+    if "dgt_deposito_id" in request.args:
+        dgt_deposito_id = safe_uuid(request.args["dgt_deposito_id"])
+        if dgt_deposito_id == "":
+            return {
+                "success": False,
+                "message": "ID de DGT Depósito inválido",
+                "totales": [],
+            }
+
+    # Consultar los totales por autoridad
+    consulta = (
+        database.session.query(
+            Autoridad.id.label("autoridad_id"),
+            Autoridad.clave.label("autoridad_clave"),
+            func.count(DgtEntrega.id).label("total"),
+        )
+        .select_from(
+            DgtEntrega,
+        )
+        .join(
+            Autoridad,
+        )
+        .where(
+            DgtEntrega.estatus == "A",
+        )
+    )
+
+    # Si viene el ID del depósito, filtrar por las rutas de éste
+    if dgt_deposito_id:
+        consulta = consulta.join(DgtEntrega.dgt_ruta).where(DgtRuta.dgt_deposito_id == dgt_deposito_id)
+
+    # Agrupar y ordenar
+    consulta = (
+        consulta.group_by(
+            Autoridad.id,
+            Autoridad.clave,
+        )
+        .order_by(
+            Autoridad.clave,
+        )
+        .all()
+    )
+
+    # Entregar la lista de totales
+    return {
+        "success": True,
+        "message": "Entrega exitosa del listado de totales por autoridad",
+        "totales": [
+            {
+                "autoridad_id": row.autoridad_id,
+                "autoridad_clave": row.autoridad_clave,
+                "fecha": row.fecha.isoformat(),
+                "total": row.total,
+            }
+            for row in consulta
+        ],
+    }
+
+
 @dgt_entregas.route("/dgt_entregas/obtener_totales_por_expediente_anio")
 def get_totales_por_expediente_anio_json():
     """Obtener los totales de DGT Entregas por materia y por año en JSON"""
@@ -314,7 +379,7 @@ def get_totales_por_expediente_anio_json():
 
 @dgt_entregas.route("/dgt_entregas/obtener_totales_por_materia_por_archivo_actualizado")
 def get_totales_por_materia_por_archivo_actualizado_json():
-    """Obtener los totales de DGT Entregas por materia y por fecha de archivo actualizado en JSON"""
+    """Obtener los totales de DGT Entregas por materia y por archivo actualizado en JSON"""
 
     # Validar las fechas inicial y final, en formato AAAA-MM-DD
     try:
