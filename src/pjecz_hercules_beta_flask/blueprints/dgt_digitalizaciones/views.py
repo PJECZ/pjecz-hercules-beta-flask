@@ -289,7 +289,6 @@ def get_totales_por_autoridad_json():
             {
                 "autoridad_id": row.autoridad_id,
                 "autoridad_clave": row.autoridad_clave,
-                "fecha": row.fecha.isoformat(),
                 "total": row.total,
             }
             for row in consulta

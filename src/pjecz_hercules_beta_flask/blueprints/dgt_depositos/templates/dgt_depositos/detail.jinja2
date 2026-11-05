@@ -36,8 +36,8 @@
     {% if graficas_blueprint %}
         <div class="row">
             <div class="col-lg-6">
-                {% call detail.card(title='Total por materia') %}
-                    <canvas id="grafico_por_materia" style="max-height: 420px;"></canvas>
+                {% call detail.card(title='Total por autoridad') %}
+                    <canvas id="grafico_por_autoridad" style="max-height: 420px;"></canvas>
                 {% endcall %}
             </div>
             <div class="col-lg-6">
@@ -136,9 +136,8 @@
     {% if graficas_blueprint %}
         <script>
           const dgtDepositoId = "{{ dgt_deposito.id }}";
-          const esDigitalizaciones = {{ 'true' if graficas_blueprint == 'dgt_digitalizaciones' else 'false' }};
-          const totalesPorAnioUrl = "{{ url_for(graficas_blueprint + '.get_totales_por_expediente_anio_json') }}";
           const totalesPorDiaUrl = "{{ url_for(graficas_blueprint + '.get_totales_por_materia_por_archivo_actualizado_json') }}";
+          const totalesPorAutoridadUrl = "{{ url_for(graficas_blueprint + '.get_totales_por_autoridad_json') }}";
 
           // Colores para cada materia en el gráfico por día
           const colores = [
@@ -154,66 +153,51 @@
             "rgb(0, 0, 128)",
           ];
 
-          // --- Gráfico de barras verticales por materia ---
+          // --- Gráfico de barras verticales por autoridad ---
 
-          fetch(`${totalesPorAnioUrl}?${new URLSearchParams({ dgt_deposito_id: dgtDepositoId })}`, {
+          fetch(`${totalesPorAutoridadUrl}?${new URLSearchParams({ dgt_deposito_id: dgtDepositoId })}`, {
             method: "GET",
             headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
           })
             .then((response) => response.json())
             .then((json) => {
               if (!json.success) {
-                console.error("Error al obtener los totales por materia:", json.message);
+                console.error("Error al obtener los totales por autoridad:", json.message);
                 return;
               }
               const totales = json.totales;
 
-              // Materias únicas ordenadas alfabéticamente
-              const materias = [...new Set(totales.map((r) => r.materia_nombre))].sort();
+              // Autoridades únicas ordenadas alfabéticamente (se descartan las sin clave)
+              const autoridades = [...new Set(totales.map((r) => r.autoridad_clave).filter((v) => v !== null && v !== ""))].sort();
 
-              // Total acumulado de todos los años por materia
-              const totalesPorMateria = materias.map((materia) =>
-                totales.filter((r) => r.materia_nombre === materia).reduce((suma, r) => suma + r.total, 0)
+              // Total acumulado de todos los años por autoridad
+              const totalesPorAutoridad = autoridades.map((autoridad) =>
+                totales.filter((r) => r.autoridad_clave === autoridad).reduce((suma, r) => suma + r.total, 0)
               );
 
-              // En digitalizaciones se enciman las barras (grouped: false) y la de entregados se dibuja por delante
-              const datasets = [
-                {
-                  label: "Total",
-                  data: totalesPorMateria,
-                  backgroundColor: esDigitalizaciones ? "rgba(54, 162, 235, 0.5)" : "rgba(54, 162, 235, 0.7)",
-                  grouped: false,
-                  order: 2,
-                },
-              ];
-              if (esDigitalizaciones) {
-                datasets.unshift({
-                  label: "Entregado",
-                  data: materias.map((materia) =>
-                    totales.filter((r) => r.materia_nombre === materia).reduce((suma, r) => suma + r.entregado_total, 0)
-                  ),
-                  backgroundColor: "rgba(75, 192, 192, 0.9)",
-                  grouped: false,
-                  order: 1,
-                });
-              }
-
-              new Chart(document.getElementById("grafico_por_materia"), {
+              new Chart(document.getElementById("grafico_por_autoridad"), {
                 type: "bar",
-                data: { labels: materias, datasets },
+                data: {
+                  labels: autoridades,
+                  datasets: [{
+                    label: "Total",
+                    data: totalesPorAutoridad,
+                    backgroundColor: "rgba(54, 162, 235, 0.7)",
+                  }],
+                },
                 options: {
                   responsive: true,
                   plugins: {
-                    legend: { display: esDigitalizaciones },
+                    legend: { display: false },
                   },
                   scales: {
-                    x: { title: { display: true, text: "Materia" } },
+                    x: { title: { display: true, text: "Autoridad" } },
                     y: { beginAtZero: true, title: { display: true, text: "Total" }, ticks: { precision: 0 } },
                   },
                 },
               });
             })
-            .catch((error) => console.error("Error al cargar el gráfico por materia:", error));
+            .catch((error) => console.error("Error al cargar el gráfico por autoridad:", error));
 
           // --- Gráfico de expedientes por día ---
 
