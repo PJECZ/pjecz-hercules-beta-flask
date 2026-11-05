@@ -22,19 +22,25 @@
         <div class="row">
             <div class="col">
                 <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosDTAbogados.buscar(); return false;">
-                    <div class="col-4">
+                    <div class="col-2">
                         <div class="form-floating">
                             <input id="filtroNumero" type="text" class="form-control" aria-label="Número" style="text-transform: uppercase;">
                             <label for="filtroNumero">Número</label>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroLibro" type="text" class="form-control" aria-label="Libro" style="text-transform: uppercase;">
+                            <label for="filtroLibro">Libro</label>
+                        </div>
+                    </div>
+                    <div class="col-4">
                         <div class="form-floating">
                             <input id="filtroNombre" type="text" class="form-control" aria-label="Nombre" style="text-transform: uppercase;">
                             <label for="filtroNombre">Nombre</label>
                         </div>
                     </div>
-                    <div class="col-2 text-end">
+                    <div class="col-4 text-end">
                         <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosDTAbogados.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
                         <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosDTAbogados.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
                     </div>
@@ -45,10 +51,10 @@
         <table id="abogados_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
             <thead>
                 <tr>
-                    <th>Números</th>
-                    <th>Fechas</th>
-                    <th>Libros</th>
-                    <th>Nombres</th>
+                    <th>Número</th>
+                    <th>Fecha</th>
+                    <th>Libro</th>
+                    <th>Nombre</th>
                 </tr>
             </thead>
         </table>
@@ -89,6 +95,7 @@
         // Filtros Abogados
         const filtrosDTAbogados = new FiltrosDataTable('#abogados_datatable', configDTAbogados);
         filtrosDTAbogados.agregarInput('filtroNumero', 'numero');
+        filtrosDTAbogados.agregarInput('filtroLibro', 'libro');
         filtrosDTAbogados.agregarInput('filtroNombre', 'nombre');
         filtrosDTAbogados.precargar();
     </script>

@@ -76,9 +76,9 @@ def datatable_json():
                 },
                 "nombre": resultado.nombre,
                 "puesto": resultado.puesto,
-                "centro_trabajo_clave": resultado.centro_trabajo.clave,
                 "email": resultado.email,
                 "en_funciones": resultado.en_funciones,
+                "en_soportes": resultado.en_soportes,
             }
         )
     # Entregar JSON

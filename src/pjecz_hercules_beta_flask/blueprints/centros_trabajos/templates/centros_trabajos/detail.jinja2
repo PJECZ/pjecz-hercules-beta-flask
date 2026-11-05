@@ -34,11 +34,79 @@
         {% endif %}
         {{ detail.label_value('Teléfono', centro_trabajo.telefono) }}
     {% endcall %}
+    {% if current_user.can_view('FUNCIONARIOS') and centro_trabajo.estatus == 'A' %}
+        {% call detail.card('Funcionarios') %}
+            <!-- Datatable Funcionarios -->
+            <table id="funcionarios_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>CURP</th>
+                        <th>Nombre</th>
+                        <th>Puesto</th>
+                        <th>e-mail</th>
+                        <th><span title="En funciones">En F.</span></th>
+                        <th><span title="En funciones">En S.</span></th>
+                    </tr>
+                </thead>
+            </table>
+        {% endcall %}
+    {% endif %}
 {% endblock %}
 
 {% block custom_javascript %}
     {% if current_user.can_admin('CENTROS TRABAJOS') %}
         {% if centro_trabajo.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar a ' + centro_trabajo.clave + '?') }}{% endif %}
         {% if centro_trabajo.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar a ' + centro_trabajo.clave + '?') }}{% endif %}
+    {% endif %}
+    {% if current_user.can_view('FUNCIONARIOS') and centro_trabajo.estatus == 'A' %}
+        <script src="/static/js/datatables-constructor.js"></script>
+        <script src="/static/js/datatables-filtros.js"></script>
+        <script>
+            // DataTable Funcionarios
+            const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+            let configDTFuncionarios = constructorDataTable.config();
+            configDTFuncionarios['ajax']['url'] = "{{ url_for('funcionarios.datatable_json') }}";
+            configDTFuncionarios['ajax']['data'] = { 'estatus': "A", 'centro_trabajo_id': {{ centro_trabajo.id }} };
+            configDTFuncionarios['columns'] = [
+                { data: 'detalle' },
+                { data: 'nombre' },
+                { data: 'puesto' },
+                { data: 'email' },
+                { data: 'en_funciones' },
+                { data: 'en_soportes' }
+            ];
+            configDTFuncionarios['columnDefs'] = [
+                {
+                    targets: 0, // detalle
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        text = data.curp.substring(0, 4) + '…';
+                        span_tag = '<span title="' + data.curp + '">' + text + '</span>';
+                        return '<a href="' + data.url + '">' + span_tag + '</a>';
+                    }
+                },
+                {
+                    targets: [1, 2], // nombre, puesto
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return (data.length > 32 ? data.substring(0, 32) + '…' : data);
+                    }
+                },
+                {
+                    targets: [4, 5], // en_funciones, en_soportes
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        if (data) { return 'SI'; } else { return ''; }
+                    }
+                }
+            ];
+            // Filtros Funcionarios
+            const filtrosFuncionarios = new FiltrosDataTable('#funcionarios_datatable', configDTFuncionarios);
+            filtrosFuncionarios.agregarInput('filtroFuncionarioCurp', 'curp');
+            filtrosFuncionarios.agregarInput('filtroFuncionarioNombres', 'nombres');
+            filtrosFuncionarios.agregarInput('filtroFuncionarioApellidoPaterno', 'apellido_paterno');
+            filtrosFuncionarios.agregarInput('filtroFuncionarioPuesto', 'puesto');
+            filtrosFuncionarios.precargar();
+        </script>
     {% endif %}
 {% endblock %}
