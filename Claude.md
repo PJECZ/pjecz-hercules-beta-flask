@@ -149,6 +149,7 @@ Los prefijos de tres letras agrupan los módulos por área:
 
 | Prefijo | Área | Blueprints |
 |---------|------|------------|
+| `app_`  | Aplicaciones externas | app_aplicaciones, app_aplicaciones_bitacoras, app_aplicaciones_roles |
 | `arc_`  | Archivo | arc_documentos, arc_documentos_bitacoras, arc_documentos_tipos, arc_juzgados_extintos, arc_remesas, arc_remesas_bitacoras, arc_remesas_documentos, arc_solicitudes, arc_solicitudes_bitacoras |
 | `dgt_`  | Digitalización | dgt_depositos, dgt_digitalizaciones, dgt_digitalizaciones_bitacoras, dgt_entregas, dgt_entregas_bitacoras, dgt_plataformas, dgt_plataformas_autoridades, dgt_plataformas_endpoints, dgt_plataformas_endpoints_bitacoras, dgt_rutas, dgt_tipos |
 | `exh_`  | Exhortos | exh_areas, exh_exhortos, exh_exhortos_archivos, exh_exhortos_partes, exh_tipos_diligencias |
