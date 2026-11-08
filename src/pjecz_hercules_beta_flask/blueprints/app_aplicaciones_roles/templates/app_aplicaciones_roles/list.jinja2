@@ -1,0 +1,99 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/list.jinja2' as list %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('APP APLICACIONES') %}
+            {{ topbar.button('Aplicaciones', url_for('app_aplicaciones.list_active'), 'mdi mdi-application-cog') }}
+        {% endif %}
+        {% if current_user.can_admin('APP APLICACIONES ROLES') %}
+            {% if estatus == 'A' %}{{ topbar.button_list_inactive('Inactivos', url_for('app_aplicaciones_roles.list_inactive')) }}{% endif %}
+            {% if estatus == 'B' %}{{ topbar.button_list_active('Activos', url_for('app_aplicaciones_roles.list_active')) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call list.card() %}
+        <!-- Filtros App Aplicaciones Roles -->
+        <div class="row">
+            <div class="col">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosAppAplicacionesRoles.buscar(); return false;">
+                    <div class="col-3">
+                        <div class="form-floating">
+                            <input id="filtroAppAplicacionClave" type="text" class="form-control" aria-label="Aplicación" style="text-transform: uppercase;">
+                            <label for="filtroAppAplicacionClave">Aplicación</label>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="form-floating">
+                            <input id="filtroRolNombre" type="text" class="form-control" aria-label="Rol" style="text-transform: uppercase;">
+                            <label for="filtroRolNombre">Rol</label>
+                        </div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosAppAplicacionesRoles.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosAppAplicacionesRoles.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Datatable App Aplicaciones Roles -->
+        <table id="app_aplicaciones_roles_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Detalle</th>
+                    <th>Aplicación</th>
+                    <th>Rol</th>
+                    <th>Nivel</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script src="/static/js/datatables-constructor.js"></script>
+    <script src="/static/js/datatables-filtros.js"></script>
+    <script>
+        // DataTable App Aplicaciones Roles
+        const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+        let configDTAppAplicacionesRoles = constructorDataTable.config();
+        configDTAppAplicacionesRoles['ajax']['url'] = "{{ url_for('app_aplicaciones_roles.datatable_json') }}";
+        configDTAppAplicacionesRoles['ajax']['data'] = {{ filtros }};
+        configDTAppAplicacionesRoles['columns'] = [
+            { data: 'detalle' },
+            { data: 'app_aplicacion' },
+            { data: 'rol' },
+            { data: 'nivel_descrito' }
+        ];
+        configDTAppAplicacionesRoles['columnDefs'] = [
+            {
+                targets: 0, // detalle
+                data: null,
+                render: function(data, type, row, meta) {
+                    return '<a href="' + data.url + '">' + data.id.substring(0, 8) + '</a>';
+                }
+            },
+            {
+                targets: [1, 2], // app_aplicacion, rol
+                data: null,
+                render: function(data, type, row, meta) {
+                    const texto = data.clave !== undefined ? data.clave : data.nombre;
+                    if (data.url === '') {
+                        return texto;
+                    }
+                    return '<a href="' + data.url + '">' + texto + '</a>';
+                }
+            }
+        ];
+        // Filtros App Aplicaciones Roles
+        const filtrosAppAplicacionesRoles = new FiltrosDataTable('#app_aplicaciones_roles_datatable', configDTAppAplicacionesRoles);
+        filtrosAppAplicacionesRoles.agregarInput('filtroAppAplicacionClave', 'app_aplicacion_clave');
+        filtrosAppAplicacionesRoles.agregarInput('filtroRolNombre', 'rol_nombre');
+        filtrosAppAplicacionesRoles.precargar();
+    </script>
+{% endblock %}
