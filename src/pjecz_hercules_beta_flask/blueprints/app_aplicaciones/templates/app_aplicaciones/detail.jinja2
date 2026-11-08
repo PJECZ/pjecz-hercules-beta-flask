@@ -4,6 +4,7 @@
 {% import 'macros/topbar.jinja2' as topbar %}
 
 {% set administrar_api_key = current_user.can_admin('APP APLICACIONES') and app_aplicacion.estatus == 'A' %}
+{% set ver_roles = current_user.can_view('APP APLICACIONES ROLES') and app_aplicacion.estatus == 'A' %}
 
 {% block title %}Aplicación {{ app_aplicacion.clave }}{% endblock %}
 
@@ -34,6 +35,23 @@
             {{ detail.label_value('Expiración', app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '') }}
         </div>
     {% endcall %}
+    {% if ver_roles %}
+        {% call detail.card('Roles') %}
+            <!-- Datatable App Aplicaciones Roles -->
+            <table id="app_aplicaciones_roles_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Rol</th>
+                        <th>Nivel</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+            </table>
+            {% if current_user.can_insert('APP APLICACIONES ROLES') %}
+                <a href="{{ url_for('app_aplicaciones_roles.new_with_app_aplicacion', app_aplicacion_id=app_aplicacion.id) }}" class="btn btn-primary"><span class="mdi mdi-plus"></span> Agregar rol</a>
+            {% endif %}
+        {% endcall %}
+    {% endif %}
     {% if administrar_api_key %}
         <!-- Modal API key -->
         <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-labelledby="apiKeyModalLabel" aria-hidden="true">
@@ -96,6 +114,97 @@
     {% if current_user.can_admin('APP APLICACIONES') %}
         {% if app_aplicacion.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
         {% if app_aplicacion.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+    {% endif %}
+    {% if ver_roles %}
+        <script src="/static/js/datatables-constructor.js"></script>
+        <script>
+            const constructorDataTable = new ConfigDataTable('{{ csrf_token() }}');
+        </script>
+    {% endif %}
+    {% if ver_roles %}
+        <script>
+            // DataTable App Aplicaciones Roles, se muestran activos e inactivos para poder alternar su estatus
+            let configDTAppAplicacionesRoles = constructorDataTable.config();
+            configDTAppAplicacionesRoles['ajax']['url'] = "{{ url_for('app_aplicaciones_roles.datatable_json') }}";
+            configDTAppAplicacionesRoles['ajax']['data'] = { 'estatus': "todos", 'app_aplicacion_id': "{{ app_aplicacion.id }}" };
+            configDTAppAplicacionesRoles['columns'] = [
+                { data: "detalle" },
+                { data: "nivel_descrito" },
+                { data: "toggle_estatus" }
+            ];
+            configDTAppAplicacionesRoles['columnDefs'] = [
+                {
+                    targets: 0, // detalle con el nombre del rol
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<a href="' + data.url + '">' + row.rol.nombre + '</a>';
+                    }
+                },
+                {
+                    targets: 1, // nivel
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return row.nivel + ') ' + data;
+                    }
+                },
+                {
+                    targets: 2, // toggle_estatus
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        if (data.url === '') return data.estatus;
+                        let myId = 'app_aplicacion_rol_estatus_' + data.id;
+                        let myRow = 'app_aplicacion_rol_row_' + data.id;
+                        let myOnClick = "toggleEstatusAppAplicacionRol('#" + myId + "', '" + data.url + "', '#" + myRow + "')";
+                        if (data.estatus === 'A') {
+                            return '<button id="' + myId + '" type="button" class="btn btn-sm btn-outline-primary" title="Activo, clic para desactivar" onclick="' + myOnClick + '"><span class="mdi mdi-toggle-switch"></span></button>';
+                        } else {
+                            return '<button id="' + myId + '" type="button" class="btn btn-sm btn-light" title="Inactivo, clic para activar" onclick="' + myOnClick + '"><span class="mdi mdi-toggle-switch-off"></span></button>';
+                        }
+                    }
+                }
+            ];
+            // DataTable App Aplicaciones Roles filas
+            configDTAppAplicacionesRoles['createdRow'] = function(row, data, dataIndex) {
+                // Cambiar estilo en las filas inactivas
+                if (data.estatus === 'B') {
+                    $(row).addClass('table-secondary');
+                }
+                // Definir un ID único para cada fila
+                if (data.hasOwnProperty('toggle_estatus')) {
+                    $(row).attr('id', 'app_aplicacion_rol_row_' + data.toggle_estatus.id);
+                }
+            };
+            $('#app_aplicaciones_roles_datatable').DataTable(configDTAppAplicacionesRoles);
+
+            // Botón toggle_estatus, cambia la fila sin recargar la página
+            function toggleEstatusAppAplicacionRol(id, url, row) {
+                $(id).prop('disabled', true); // Deshabilitar botón para evitar múltiples clics
+                fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            if (data.estatus === 'A') {
+                                $(id).removeClass('btn-light').addClass('btn-outline-primary');
+                                $(id).attr('title', 'Activo, clic para desactivar');
+                                $(id).html('<span class="mdi mdi-toggle-switch"></span>');
+                                $(row).removeClass('table-secondary');
+                            } else {
+                                $(id).removeClass('btn-outline-primary').addClass('btn-light');
+                                $(id).attr('title', 'Inactivo, clic para activar');
+                                $(id).html('<span class="mdi mdi-toggle-switch-off"></span>');
+                                $(row).addClass('table-secondary');
+                            }
+                        }
+                        console.log(data.message);
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    })
+                    .finally(() => {
+                        $(id).prop('disabled', false); // Habilitar botón
+                    });
+            }
+        </script>
     {% endif %}
     {% if administrar_api_key %}
         <script>
