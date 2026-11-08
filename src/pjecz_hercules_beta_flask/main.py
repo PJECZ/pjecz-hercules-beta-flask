@@ -5,6 +5,7 @@ PJECZ Hercules Beta Flask
 from flask import Flask
 
 from pjecz_hercules_beta_flask.blueprints.abogados.views import abogados
+from pjecz_hercules_beta_flask.blueprints.app_aplicaciones.views import app_aplicaciones
 from pjecz_hercules_beta_flask.blueprints.arc_documentos.views import arc_documentos
 from pjecz_hercules_beta_flask.blueprints.arc_documentos_bitacoras.views import arc_documentos_bitacoras
 from pjecz_hercules_beta_flask.blueprints.arc_documentos_tipos.views import arc_documentos_tipos
@@ -84,6 +85,7 @@ app.config.from_object(Settings())
 
 # Registrar blueprints
 app.register_blueprint(abogados)
+app.register_blueprint(app_aplicaciones)
 app.register_blueprint(arc_documentos)
 app.register_blueprint(arc_documentos_bitacoras)
 app.register_blueprint(arc_documentos_tipos)
