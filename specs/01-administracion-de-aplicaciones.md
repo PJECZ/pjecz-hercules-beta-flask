@@ -1,6 +1,6 @@
 # SPEC 01 — Administración de aplicaciones externas (app_aplicaciones)
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** ninguna
 > **Fecha:** 2026-11-05
 > **Objetivo:** Agregar tres blueprints (`app_aplicaciones`, `app_aplicaciones_roles`, `app_aplicaciones_bitacoras`) para administrar las aplicaciones externas que consultan y entregan información a la plataforma, sus roles con nivel y la consulta de su bitácora de operaciones.
