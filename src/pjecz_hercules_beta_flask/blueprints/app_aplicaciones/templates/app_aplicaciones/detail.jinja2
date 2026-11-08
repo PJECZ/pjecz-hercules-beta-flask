@@ -3,11 +3,16 @@
 {% import 'macros/modals.jinja2' as modals %}
 {% import 'macros/topbar.jinja2' as topbar %}
 
+{% set administrar_api_key = current_user.can_admin('APP APLICACIONES') and app_aplicacion.estatus == 'A' %}
+
 {% block title %}Aplicación {{ app_aplicacion.clave }}{% endblock %}
 
 {% block topbar_actions %}
     {% call topbar.page_buttons('Aplicación ' + app_aplicacion.clave) %}
         {{ topbar.button_previous('Aplicaciones', url_for('app_aplicaciones.list_active')) }}
+        {% if administrar_api_key %}
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#apiKeyModal"><span class="mdi mdi-key"></span> API key</button>
+        {% endif %}
         {% if current_user.can_edit('APP APLICACIONES') %}
             {{ topbar.button_edit('Editar', url_for('app_aplicaciones.edit', app_aplicacion_id=app_aplicacion.id)) }}
         {% endif %}
@@ -29,11 +34,138 @@
             {{ detail.label_value('Expiración', app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '') }}
         </div>
     {% endcall %}
+    {% if administrar_api_key %}
+        <!-- Modal API key -->
+        <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-labelledby="apiKeyModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="apiKeyModalLabel">API key de {{ app_aplicacion.clave }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="apiKeyForm" onsubmit="return false;">
+                            <div class="mb-3">
+                                <div class="mb-2">Para generar la API key elija la cantidad de días de duración:</div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration30days" name="fieldDays" value="30" class="form-check-input">
+                                    <label for="duration30days" class="form-check-label">30 días = 1 mes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration90days" name="fieldDays" value="90" class="form-check-input" checked>
+                                    <label for="duration90days" class="form-check-label">90 días = 3 meses</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration365days" name="fieldDays" value="365" class="form-check-input">
+                                    <label for="duration365days" class="form-check-label">365 días = 1 año</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration3650days" name="fieldDays" value="3650" class="form-check-input">
+                                    <label for="duration3650days" class="form-check-label">3650 días = 10 años</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fieldAPIKey" class="col-form-label">
+                                    🚨 <strong>ADVERTENCIA:</strong> Al generar o limpiar, la API key anterior dejará de funcionar.
+                                    La llave completa solo se muestra al generarla; cópiela antes de cerrar.
+                                </label>
+                                <div class="input-group mb-2">
+                                    <button type="button" class="btn btn-outline-danger" id="buttonCleanAPIKey" onclick="cleanAPIKey()">Limpiar</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="buttonNewAPIKey" onclick="newAPIKey()">Generar</button>
+                                    <input type="text" readonly class="form-control" id="fieldAPIKey" aria-label="API key" value="{{ app_aplicacion.api_key_oculta }}">
+                                    <button type="button" class="btn btn-outline-primary" id="buttonCopyAPIKey" onclick="copyAPIKey()">Copiar</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fieldExpiracion" class="col-form-label">Expiración</label>
+                                <input type="text" readonly class="form-control" id="fieldExpiracion" value="{{ app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '' }}">
+                            </div>
+                            <div id="apiKeyMensaje"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
 
 {% block custom_javascript %}
     {% if current_user.can_admin('APP APLICACIONES') %}
         {% if app_aplicacion.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
         {% if app_aplicacion.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+    {% endif %}
+    {% if administrar_api_key %}
+        <script>
+            const apiKeyField = document.getElementById('fieldAPIKey');
+            const expiracionField = document.getElementById('fieldExpiracion');
+            const apiKeyMensaje = document.getElementById('apiKeyMensaje');
+            let apiKeyCambiada = false;
+
+            // Mostrar un mensaje dentro del modal
+            function mostrarMensajeAPIKey(tipo, texto) {
+                const alerta = document.createElement('div');
+                alerta.className = 'alert alert-' + tipo + ' mb-0';
+                alerta.setAttribute('role', 'alert');
+                alerta.textContent = texto;
+                apiKeyMensaje.replaceChildren(alerta);
+            }
+
+            // Enviar la petición para generar o limpiar
+            function requestAPIKey(formData) {
+                fetch("{{ url_for('app_aplicaciones.api_key_request_json', app_aplicacion_id=app_aplicacion.id) }}", {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: formData
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            apiKeyField.value = data.api_key;
+                            expiracionField.value = data.expiracion;
+                            apiKeyCambiada = true;
+                        }
+                        mostrarMensajeAPIKey(data.success ? 'success' : 'warning', data.message);
+                    })
+                    .catch((error) => {
+                        mostrarMensajeAPIKey('danger', 'No se pudo completar la acción. ¿Tiene permiso para administrar?');
+                        console.log(error);
+                    });
+            }
+
+            // Generar una nueva API key con los días elegidos
+            function newAPIKey() {
+                const seleccion = document.querySelector('input[name="fieldDays"]:checked');
+                const formData = new FormData();
+                formData.append('action', 'new');
+                formData.append('days', seleccion ? seleccion.value : '90');
+                requestAPIKey(formData);
+            }
+
+            // Limpiar la API key
+            function cleanAPIKey() {
+                const formData = new FormData();
+                formData.append('action', 'clean');
+                requestAPIKey(formData);
+            }
+
+            // Copiar la API key al portapapeles
+            function copyAPIKey() {
+                if (apiKeyField.value !== '') {
+                    navigator.clipboard.writeText(apiKeyField.value)
+                        .then(() => mostrarMensajeAPIKey('info', 'API key copiada al portapapeles.'))
+                        .catch(() => { apiKeyField.select(); document.execCommand('copy'); });
+                }
+            }
+
+            // Al cerrar el modal, recargar la página si cambió la API key para actualizar el detalle
+            document.getElementById('apiKeyModal').addEventListener('hidden.bs.modal', function() {
+                if (apiKeyCambiada) {
+                    window.location.reload();
+                }
+            });
+        </script>
     {% endif %}
 {% endblock %}

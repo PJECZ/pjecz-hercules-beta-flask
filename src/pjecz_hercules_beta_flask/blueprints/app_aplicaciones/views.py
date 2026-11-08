@@ -3,6 +3,7 @@ App Aplicaciones, vistas
 """
 
 import json
+from datetime import datetime, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -14,9 +15,12 @@ from pjecz_hercules_beta_flask.blueprints.modulos.models import Modulo
 from pjecz_hercules_beta_flask.blueprints.permisos.models import Permiso
 from pjecz_hercules_beta_flask.blueprints.usuarios.decorators import permission_required
 from pjecz_hercules_beta_flask.lib.datatables import get_datatable_parameters, output_datatable_json
+from pjecz_hercules_beta_flask.lib.pwgen import generar_api_key_aplicacion
 from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_message, safe_string, safe_uuid
 
 MODULO = "APP APLICACIONES"
+API_KEY_DIAS_POR_DEFECTO = 90
+API_KEY_DIAS_MAXIMO = 3650
 
 app_aplicaciones = Blueprint("app_aplicaciones", __name__, template_folder="templates")
 
@@ -229,3 +233,70 @@ def recover(app_aplicacion_id):
         bitacora.save()
         flash(bitacora.descripcion, "success")
     return redirect(url_for("app_aplicaciones.detail", app_aplicacion_id=app_aplicacion.id))
+
+
+@app_aplicaciones.route("/app_aplicaciones/api_key_request_json/<app_aplicacion_id>", methods=["POST"])
+@permission_required(MODULO, Permiso.ADMINISTRAR)
+def api_key_request_json(app_aplicacion_id):
+    """Generar o limpiar la API key de una App Aplicación"""
+    app_aplicacion_id = safe_uuid(app_aplicacion_id)
+    if app_aplicacion_id == "":
+        return {"success": False, "message": "ID de aplicación inválido", "api_key": "", "expiracion": ""}
+    app_aplicacion = AppAplicacion.query.get_or_404(app_aplicacion_id)
+    if app_aplicacion.estatus != "A":
+        return {"success": False, "message": "La aplicación no está activa", "api_key": "", "expiracion": ""}
+    action = request.form.get("action", "")
+
+    # Si se recibe action con clean, se va a limpiar
+    if action == "clean":
+        app_aplicacion.api_key = ""
+        app_aplicacion.expiracion = datetime(year=2000, month=1, day=1)
+        app_aplicacion.save()
+        mensaje = f"La API key de la aplicación {app_aplicacion.clave} fue eliminada"
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(mensaje),
+            url=url_for("app_aplicaciones.detail", app_aplicacion_id=app_aplicacion.id),
+        )
+        bitacora.save()
+        return {
+            "success": True,
+            "message": mensaje,
+            "api_key": "",
+            "expiracion": app_aplicacion.expiracion.strftime("%Y-%m-%d %H:%M"),
+        }
+
+    # Si se recibe action con new, se va a crear una nueva
+    if action == "new":
+        try:
+            days = int(request.form.get("days") or API_KEY_DIAS_POR_DEFECTO)
+        except ValueError:
+            return {"success": False, "message": "Los días deben ser un número entero", "api_key": "", "expiracion": ""}
+        if days < 1 or days > API_KEY_DIAS_MAXIMO:
+            return {
+                "success": False,
+                "message": f"Los días deben estar entre 1 y {API_KEY_DIAS_MAXIMO}",
+                "api_key": "",
+                "expiracion": "",
+            }
+        app_aplicacion.api_key = generar_api_key_aplicacion(app_aplicacion.clave)
+        app_aplicacion.expiracion = datetime.now() + timedelta(days=days)
+        app_aplicacion.save()
+        mensaje = f"Nueva API key para la aplicación {app_aplicacion.clave} con expiración en {days} días"
+        bitacora = Bitacora(
+            modulo=Modulo.query.filter_by(nombre=MODULO).first(),
+            usuario=current_user,
+            descripcion=safe_message(mensaje),
+            url=url_for("app_aplicaciones.detail", app_aplicacion_id=app_aplicacion.id),
+        )
+        bitacora.save()
+        return {
+            "success": True,
+            "message": mensaje,
+            "api_key": app_aplicacion.api_key,
+            "expiracion": app_aplicacion.expiracion.strftime("%Y-%m-%d %H:%M"),
+        }
+
+    # Cualquier otra acción no es válida
+    return {"success": False, "message": "Acción no válida", "api_key": "", "expiracion": ""}
