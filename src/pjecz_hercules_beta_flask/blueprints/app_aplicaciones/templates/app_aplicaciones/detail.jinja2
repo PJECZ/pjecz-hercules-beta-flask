@@ -5,6 +5,7 @@
 
 {% set administrar_api_key = current_user.can_admin('APP APLICACIONES') and app_aplicacion.estatus == 'A' %}
 {% set ver_roles = current_user.can_view('APP APLICACIONES ROLES') and app_aplicacion.estatus == 'A' %}
+{% set ver_bitacoras = current_user.can_view('APP APLICACIONES BITACORAS') %}
 
 {% block title %}Aplicación {{ app_aplicacion.clave }}{% endblock %}
 
@@ -50,6 +51,22 @@
             {% if current_user.can_insert('APP APLICACIONES ROLES') %}
                 <a href="{{ url_for('app_aplicaciones_roles.new_with_app_aplicacion', app_aplicacion_id=app_aplicacion.id) }}" class="btn btn-primary"><span class="mdi mdi-plus"></span> Agregar rol</a>
             {% endif %}
+        {% endcall %}
+    {% endif %}
+    {% if ver_bitacoras %}
+        {% call detail.card('Bitácora') %}
+            <!-- Datatable App Aplicaciones Bitácoras -->
+            <table id="app_aplicaciones_bitacoras_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Creado</th>
+                        <th>Petición</th>
+                        <th>Ruta</th>
+                        <th>Estado</th>
+                        <th>Mensaje</th>
+                    </tr>
+                </thead>
+            </table>
         {% endcall %}
     {% endif %}
     {% if administrar_api_key %}
@@ -115,7 +132,7 @@
         {% if app_aplicacion.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
         {% if app_aplicacion.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
     {% endif %}
-    {% if ver_roles %}
+    {% if ver_roles or ver_bitacoras %}
         <script src="/static/js/datatables-constructor.js"></script>
         <script>
             const constructorDataTable = new ConfigDataTable('{{ csrf_token() }}');
@@ -204,6 +221,46 @@
                         $(id).prop('disabled', false); // Habilitar botón
                     });
             }
+        </script>
+    {% endif %}
+    {% if ver_bitacoras %}
+        <script>
+            // DataTable App Aplicaciones Bitácoras, solo las de esta aplicación
+            let configDTAppAplicacionesBitacoras = constructorDataTable.config();
+            configDTAppAplicacionesBitacoras['ajax']['url'] = "{{ url_for('app_aplicaciones_bitacoras.datatable_json') }}";
+            configDTAppAplicacionesBitacoras['ajax']['data'] = { 'estatus': "A", 'app_aplicacion_id': "{{ app_aplicacion.id }}" };
+            configDTAppAplicacionesBitacoras['columns'] = [
+                { data: "detalle" },
+                { data: "peticion" },
+                { data: "ruta" },
+                { data: "respuesta_estado" },
+                { data: "respuesta_mensaje" }
+            ];
+            configDTAppAplicacionesBitacoras['columnDefs'] = [
+                {
+                    targets: 0, // detalle
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<a href="' + data.url + '">' + data.creado + '</a>';
+                    }
+                },
+                {
+                    targets: [2, 4], // ruta, respuesta_mensaje
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        const texto = $('<span>').text(data).html();
+                        return (data.length > 48 ? '<span title="' + texto + '">' + $('<span>').text(data.substring(0, 48)).html() + '…</span>' : texto);
+                    }
+                },
+                {
+                    targets: 3, // respuesta_estado
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<span class="' + (row.es_exitosa ? 'text-success' : 'text-danger') + '">' + data + '</span>';
+                    }
+                }
+            ];
+            $('#app_aplicaciones_bitacoras_datatable').DataTable(configDTAppAplicacionesBitacoras);
         </script>
     {% endif %}
     {% if administrar_api_key %}
