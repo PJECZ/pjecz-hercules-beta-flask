@@ -10,6 +10,7 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from pjecz_hercules_beta_flask.blueprints.app_aplicaciones_bitacoras.models import AppAplicacionBitacora
 from pjecz_hercules_beta_flask.blueprints.app_aplicaciones_roles.models import AppAplicacionRol
 from pjecz_hercules_beta_flask.config.extensions import database
 from pjecz_hercules_beta_flask.lib.universal_mixin import UniversalMixin
@@ -36,6 +37,7 @@ class AppAplicacion(database.Model, UniversalMixin):
 
     # Hijos
     app_aplicaciones_roles: Mapped[list["AppAplicacionRol"]] = relationship(back_populates="app_aplicacion")
+    app_aplicaciones_bitacoras: Mapped[list["AppAplicacionBitacora"]] = relationship(back_populates="app_aplicacion")
 
     @property
     def api_key_oculta(self):
