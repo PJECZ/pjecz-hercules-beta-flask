@@ -1,0 +1,39 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}Aplicación {{ app_aplicacion.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Aplicación ' + app_aplicacion.clave) %}
+        {{ topbar.button_previous('Aplicaciones', url_for('app_aplicaciones.list_active')) }}
+        {% if current_user.can_edit('APP APLICACIONES') %}
+            {{ topbar.button_edit('Editar', url_for('app_aplicaciones.edit', app_aplicacion_id=app_aplicacion.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('APP APLICACIONES') %}
+            {% if app_aplicacion.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('app_aplicaciones.delete', app_aplicacion_id=app_aplicacion.id)) }}{% endif %}
+            {% if app_aplicacion.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('app_aplicaciones.recover', app_aplicacion_id=app_aplicacion.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=app_aplicacion.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', app_aplicacion.clave) }}
+            {{ detail.label_value('Descripción', app_aplicacion.descripcion) }}
+            {{ detail.label_value('Cuota diaria', app_aplicacion.cuota_diaria) }}
+            {{ detail.label_value('Cuota por hora', app_aplicacion.cuota_por_hora) }}
+            {{ detail.label_value('API key', app_aplicacion.api_key_oculta) }}
+            {{ detail.label_value('Expiración', app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '') }}
+        </div>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('APP APLICACIONES') %}
+        {% if app_aplicacion.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+        {% if app_aplicacion.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}
