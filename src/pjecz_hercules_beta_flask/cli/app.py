@@ -4,6 +4,7 @@ PJECZ Hercules Beta Flask CLI
 
 from typer import Typer
 
+from pjecz_hercules_beta_flask.cli.commands.arc_documentos import arc_documentos
 from pjecz_hercules_beta_flask.cli.commands.autoridades import autoridades
 from pjecz_hercules_beta_flask.cli.commands.db import db
 from pjecz_hercules_beta_flask.cli.commands.modulos import modulos
@@ -12,6 +13,7 @@ from pjecz_hercules_beta_flask.cli.commands.ofi_plantillas import ofi_plantillas
 from pjecz_hercules_beta_flask.cli.commands.usuarios import usuarios
 
 cli = Typer()
+cli.add_typer(arc_documentos, name="arc_documentos")
 cli.add_typer(autoridades, name="autoridades")
 cli.add_typer(db, name="db")
 cli.add_typer(modulos, name="modulos")
