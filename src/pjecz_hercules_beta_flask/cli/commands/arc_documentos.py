@@ -2,20 +2,28 @@
 CLI Archivos Documentos
 """
 
-from datetime import datetime
+from datetime import date, datetime
+from pathlib import Path
 from typing import Optional
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from rich.console import Console
 from rich.table import Table
 from sqlalchemy import select
-from typer import Exit, Option, Typer
+from typer import Argument, Exit, Option, Typer
 
 from pjecz_hercules_beta_flask.blueprints.arc_documentos.models import ArcDocumento
+from pjecz_hercules_beta_flask.blueprints.arc_documentos_tipos.models import ArcDocumentoTipo
 from pjecz_hercules_beta_flask.blueprints.autoridades.models import Autoridad
 from pjecz_hercules_beta_flask.config.extensions import database
-from pjecz_hercules_beta_flask.lib.safe_string import safe_clave, safe_expediente, safe_string
+from pjecz_hercules_beta_flask.lib.safe_string import (
+    extract_expediente_anio,
+    extract_expediente_num,
+    safe_clave,
+    safe_expediente,
+    safe_string,
+)
 from pjecz_hercules_beta_flask.main import app
 
 # Inicializar la aplicación
@@ -112,7 +120,7 @@ def consultar(
     if expediente:
         try:
             expediente = safe_expediente(expediente)
-        except (IndexError, ValueError):
+        except IndexError, ValueError:
             console.print("[red]ERROR: El expediente no es válido.")
             raise Exit(code=1)
         stmt = stmt.filter(ArcDocumento.expediente == expediente)
@@ -200,3 +208,200 @@ def _exportar_xlsx(console: Console, stmt, archivo_xlsx: str):
         console.print(f"[red]ERROR: No se pudo guardar {archivo_xlsx}: {error}")
         raise Exit(code=1)
     console.print(f"[green]Se exportaron {contador} documentos a {archivo_xlsx}")
+
+
+class RenglonInvalido(ValueError):
+    """Error de validación de un renglón del XLSX"""
+
+
+def _texto(valor, max_len: int, obligatorio: bool, nombre: str) -> str:
+    """Limpiar un texto de una celda, recortando a max_len"""
+    texto = safe_string(str(valor) if valor is not None else "", max_len=0, save_enie=True)
+    if obligatorio and texto == "":
+        raise RenglonInvalido(f"{nombre} está vacío")
+    return texto[:max_len]
+
+
+def _entero(valor, nombre: str) -> int:
+    """Convertir una celda a entero"""
+    if isinstance(valor, bool):
+        raise RenglonInvalido(f"{nombre} no es un número: {valor}")
+    if isinstance(valor, float) and valor.is_integer():
+        return int(valor)
+    try:
+        return int(str(valor).strip())
+    except TypeError, ValueError:
+        raise RenglonInvalido(f"{nombre} no es un número: {valor}")
+
+
+def _validar_renglon(celdas: tuple, autoridades: dict[str, int]) -> dict:
+    """Validar las celdas de un renglón y entregar los valores limpios"""
+
+    # Completar con None si el renglón trae menos columnas
+    celdas = tuple(celdas) + (None,) * (len(COLUMNAS) - len(celdas))
+    _, autoridad_clave, expediente, anio, actor, demandado, juicio, tipo_juzgado, ubicacion, fojas = celdas[: len(COLUMNAS)]
+
+    # Autoridad
+    autoridad_clave = safe_clave(str(autoridad_clave) if autoridad_clave is not None else "")
+    if autoridad_clave == "":
+        raise RenglonInvalido("la clave de la autoridad está vacía")
+    if autoridad_clave not in autoridades:
+        raise RenglonInvalido(f"no existe la autoridad {autoridad_clave}")
+
+    # Expediente
+    try:
+        expediente = safe_expediente(str(expediente) if expediente is not None else "")
+    except IndexError, ValueError:
+        raise RenglonInvalido(f"el expediente no es válido: {expediente}")
+    if expediente == "":
+        raise RenglonInvalido("el expediente está vacío")
+
+    # Año, debe coincidir con el año del expediente
+    anio = _entero(anio, "el año")
+    if anio < 1900 or anio > date.today().year:
+        raise RenglonInvalido(f"el año está fuera de rango: {anio}")
+    if anio != extract_expediente_anio(expediente):
+        raise RenglonInvalido(f"el año {anio} no coincide con el del expediente {expediente}")
+
+    # Tipo de juzgado
+    tipo_juzgado = safe_string(str(tipo_juzgado) if tipo_juzgado is not None else "")
+    if tipo_juzgado not in ArcDocumento.TIPO_JUZGADOS:
+        raise RenglonInvalido(f"el tipo debe ser {' o '.join(ArcDocumento.TIPO_JUZGADOS)}: {tipo_juzgado}")
+
+    # Ubicación, si viene vacía es NO DEFINIDO
+    ubicacion = safe_string(str(ubicacion) if ubicacion is not None else "") or "NO DEFINIDO"
+    if ubicacion not in ArcDocumento.UBICACIONES:
+        raise RenglonInvalido(f"la ubicación debe ser una de {', '.join(ArcDocumento.UBICACIONES)}: {ubicacion}")
+
+    # Fojas
+    fojas = _entero(fojas, "las fojas")
+    if fojas < 0:
+        raise RenglonInvalido(f"las fojas no pueden ser negativas: {fojas}")
+
+    return {
+        "autoridad_id": autoridades[autoridad_clave],
+        "expediente": expediente,
+        "expediente_numero": extract_expediente_num(expediente),
+        "anio": anio,
+        "actor": _texto(actor, 256, True, "el actor"),
+        "demandado": _texto(demandado, 256, False, "el demandado"),
+        "juicio": _texto(juicio, 128, False, "el juicio"),
+        "tipo_juzgado": tipo_juzgado,
+        "ubicacion": ubicacion,
+        "fojas": fojas,
+    }
+
+
+@arc_documentos.command()
+def alimentar(
+    archivo_xlsx: Path = Argument(..., exists=True, dir_okay=False, readable=True, help="Archivo XLSX a cargar"),
+    probar: bool = Option(False, "--probar", help="Validar y contar sin hacer cambios en la base de datos"),
+):
+    """Insertar o actualizar documentos de archivo a partir de un archivo XLSX"""
+    console = Console()
+    console.print(f"Alimentando los documentos de archivo desde {archivo_xlsx}...")
+    if probar:
+        console.print("[yellow]Modo de prueba: no se harán cambios en la base de datos.")
+
+    # Abrir el archivo XLSX
+    try:
+        libro = load_workbook(archivo_xlsx, read_only=True, data_only=True)
+    except Exception as error:
+        console.print(f"[red]ERROR: No se pudo abrir {archivo_xlsx}: {error}")
+        raise Exit(code=1)
+    hoja = libro.active
+    if hoja is None:
+        console.print("[red]ERROR: El archivo XLSX no tiene hojas.")
+        raise Exit(code=1)
+
+    # Cargar las claves de las autoridades
+    autoridades = {
+        clave: autoridad_id for autoridad_id, clave in database.session.execute(select(Autoridad.id, Autoridad.clave))
+    }
+
+    # Consultar el tipo de documento NO DEFINIDO, para los nuevos
+    arc_documento_tipo_id = database.session.execute(
+        select(ArcDocumentoTipo.id).filter(ArcDocumentoTipo.nombre == "NO DEFINIDO")
+    ).scalar_one_or_none()
+    if arc_documento_tipo_id is None:
+        console.print("[red]ERROR: No existe el tipo de documento NO DEFINIDO.")
+        raise Exit(code=1)
+
+    # Columnas que se actualizan en los documentos existentes
+    columnas_a_actualizar = ["expediente_numero", "anio", "actor", "demandado", "juicio", "tipo_juzgado", "ubicacion", "fojas"]
+
+    # Recorrer los renglones, el primero son los encabezados
+    insertados = 0
+    actualizados = 0
+    sin_cambios = 0
+    invalidos = 0
+    try:
+        for numero, celdas in enumerate(hoja.iter_rows(min_row=2, values_only=True), start=2):
+            # Omitir los renglones vacíos
+            if all(celda is None or str(celda).strip() == "" for celda in celdas):
+                continue
+
+            # Validar
+            try:
+                datos = _validar_renglon(celdas, autoridades)
+            except RenglonInvalido as error:
+                console.print(f"[red]Renglón {numero}: {error}")
+                invalidos += 1
+                continue
+
+            # Consultar si ya existen documentos con esa autoridad y expediente
+            existentes = (
+                database.session.execute(
+                    select(ArcDocumento)
+                    .filter(ArcDocumento.autoridad_id == datos["autoridad_id"])
+                    .filter(ArcDocumento.expediente == datos["expediente"])
+                    .filter(ArcDocumento.estatus == "A")
+                )
+                .scalars()
+                .all()
+            )
+
+            # Si no existe, insertar
+            if not existentes:
+                database.session.add(
+                    ArcDocumento(
+                        **datos,
+                        arc_documento_tipo_id=arc_documento_tipo_id,
+                        arc_juzgados_origen_claves="",
+                    )
+                )
+                insertados += 1
+                continue
+
+            # Si existen, actualizar todos los que coincidan
+            for arc_documento in existentes:
+                hay_cambios = False
+                for columna in columnas_a_actualizar:
+                    if getattr(arc_documento, columna) != datos[columna]:
+                        setattr(arc_documento, columna, datos[columna])
+                        hay_cambios = True
+                if hay_cambios:
+                    actualizados += 1
+                else:
+                    sin_cambios += 1
+
+        # Guardar todo en una sola transacción, o deshacer si es prueba
+        if probar:
+            database.session.rollback()
+        else:
+            database.session.commit()
+    except Exception:
+        database.session.rollback()
+        console.print("[red]ERROR: Se deshicieron todos los cambios.")
+        raise
+    finally:
+        libro.close()
+
+    # Mostrar los contadores
+    prefijo = "Se insertarían" if probar else "Se insertaron"
+    console.print(f"[green]{prefijo} {insertados} documentos.")
+    prefijo = "Se actualizarían" if probar else "Se actualizaron"
+    console.print(f"[green]{prefijo} {actualizados} documentos.")
+    console.print(f"Sin cambios: {sin_cambios} documentos.")
+    if invalidos:
+        console.print(f"[red]Renglones inválidos (omitidos): {invalidos}")
