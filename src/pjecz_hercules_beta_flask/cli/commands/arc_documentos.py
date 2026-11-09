@@ -283,7 +283,7 @@ def _validar_renglon(celdas: tuple, autoridades: dict[str, int]) -> dict:
         "expediente": expediente,
         "expediente_numero": extract_expediente_num(expediente),
         "anio": anio,
-        "actor": _texto(actor, 256, True, "el actor"),
+        "actor": _texto(actor, 256, False, "el actor"),
         "demandado": _texto(demandado, 256, False, "el demandado"),
         "juicio": _texto(juicio, 128, False, "el juicio"),
         "tipo_juzgado": tipo_juzgado,
