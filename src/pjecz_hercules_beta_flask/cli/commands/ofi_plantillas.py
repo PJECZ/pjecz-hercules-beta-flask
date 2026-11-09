@@ -28,9 +28,6 @@ def consultar():
     console = Console()
     console.print("Consultando las plantillas de oficios...")
 
-    # Iniciar la sesión de base de datos
-    database = get_database()
-
     # Preparar la consulta
     stmt = (
         select(
@@ -68,7 +65,7 @@ def consultar():
     tabla.add_column("Destinatarios")
     tabla.add_column("Arch.")
     tabla.add_column("Comp.")
-    for item in database.execute(stmt):
+    for item in database.session.execute(stmt):
         tabla.add_row(
             item.descripcion,
             item.email,
