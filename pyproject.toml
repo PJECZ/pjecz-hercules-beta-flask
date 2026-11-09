@@ -65,6 +65,8 @@ line_length = 128
 profile = "black"
 
 [tool.basedpyright]
+venvPath = "."
+venv = ".venv"
 pythonVersion = "3.14"
 typeCheckingMode = "basic"
 reportCallIssue = "hint"

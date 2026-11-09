@@ -1,0 +1,337 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% set administrar_api_key = current_user.can_admin('APP APLICACIONES') and app_aplicacion.estatus == 'A' %}
+{% set ver_roles = current_user.can_view('APP APLICACIONES ROLES') and app_aplicacion.estatus == 'A' %}
+{% set ver_bitacoras = current_user.can_view('APP APLICACIONES BITACORAS') %}
+
+{% block title %}Aplicación {{ app_aplicacion.clave }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Aplicación ' + app_aplicacion.clave) %}
+        {{ topbar.button_previous('Aplicaciones', url_for('app_aplicaciones.list_active')) }}
+        {% if administrar_api_key %}
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#apiKeyModal"><span class="mdi mdi-key"></span> API key</button>
+        {% endif %}
+        {% if current_user.can_edit('APP APLICACIONES') %}
+            {{ topbar.button_edit('Editar', url_for('app_aplicaciones.edit', app_aplicacion_id=app_aplicacion.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('APP APLICACIONES') %}
+            {% if app_aplicacion.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('app_aplicaciones.delete', app_aplicacion_id=app_aplicacion.id)) }}{% endif %}
+            {% if app_aplicacion.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('app_aplicaciones.recover', app_aplicacion_id=app_aplicacion.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=app_aplicacion.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Clave', app_aplicacion.clave) }}
+            {{ detail.label_value('Descripción', app_aplicacion.descripcion) }}
+            {{ detail.label_value('Cuota diaria', app_aplicacion.cuota_diaria) }}
+            {{ detail.label_value('Cuota por hora', app_aplicacion.cuota_por_hora) }}
+            {{ detail.label_value('API key', app_aplicacion.api_key_oculta) }}
+            {{ detail.label_value('Expiración', app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '') }}
+        </div>
+    {% endcall %}
+    {% if ver_roles %}
+        {% call detail.card('Roles') %}
+            <!-- Datatable App Aplicaciones Roles -->
+            <table id="app_aplicaciones_roles_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Rol</th>
+                        <th>Nivel</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+            </table>
+            {% if current_user.can_insert('APP APLICACIONES ROLES') %}
+                <a href="{{ url_for('app_aplicaciones_roles.new_with_app_aplicacion', app_aplicacion_id=app_aplicacion.id) }}" class="btn btn-primary"><span class="mdi mdi-plus"></span> Agregar rol</a>
+            {% endif %}
+        {% endcall %}
+    {% endif %}
+    {% if ver_bitacoras %}
+        {% call detail.card('Bitácora') %}
+            <!-- Datatable App Aplicaciones Bitácoras -->
+            <table id="app_aplicaciones_bitacoras_datatable" class="table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Creado</th>
+                        <th>Petición</th>
+                        <th>Ruta</th>
+                        <th>Estado</th>
+                        <th>Mensaje</th>
+                    </tr>
+                </thead>
+            </table>
+        {% endcall %}
+    {% endif %}
+    {% if administrar_api_key %}
+        <!-- Modal API key -->
+        <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-labelledby="apiKeyModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="apiKeyModalLabel">API key de {{ app_aplicacion.clave }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="apiKeyForm" onsubmit="return false;">
+                            <div class="mb-3">
+                                <div class="mb-2">Para generar la API key elija la cantidad de días de duración:</div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration30days" name="fieldDays" value="30" class="form-check-input">
+                                    <label for="duration30days" class="form-check-label">30 días = 1 mes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration90days" name="fieldDays" value="90" class="form-check-input" checked>
+                                    <label for="duration90days" class="form-check-label">90 días = 3 meses</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration365days" name="fieldDays" value="365" class="form-check-input">
+                                    <label for="duration365days" class="form-check-label">365 días = 1 año</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" id="duration3650days" name="fieldDays" value="3650" class="form-check-input">
+                                    <label for="duration3650days" class="form-check-label">3650 días = 10 años</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fieldAPIKey" class="col-form-label">
+                                    🚨 <strong>ADVERTENCIA:</strong> Al generar o limpiar, la API key anterior dejará de funcionar.
+                                    La llave completa solo se muestra al generarla; cópiela antes de cerrar.
+                                </label>
+                                <div class="input-group mb-2">
+                                    <button type="button" class="btn btn-outline-danger" id="buttonCleanAPIKey" onclick="cleanAPIKey()">Limpiar</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="buttonNewAPIKey" onclick="newAPIKey()">Generar</button>
+                                    <input type="text" readonly class="form-control" id="fieldAPIKey" aria-label="API key" value="{{ app_aplicacion.api_key_oculta }}">
+                                    <button type="button" class="btn btn-outline-primary" id="buttonCopyAPIKey" onclick="copyAPIKey()">Copiar</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fieldExpiracion" class="col-form-label">Expiración</label>
+                                <input type="text" readonly class="form-control" id="fieldExpiracion" value="{{ app_aplicacion.expiracion.strftime('%Y-%m-%d %H:%M') if app_aplicacion.expiracion else '' }}">
+                            </div>
+                            <div id="apiKeyMensaje"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('APP APLICACIONES') %}
+        {% if app_aplicacion.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+        {% if app_aplicacion.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar la aplicación ' + app_aplicacion.clave + '?') }}{% endif %}
+    {% endif %}
+    {% if ver_roles or ver_bitacoras %}
+        <script src="/static/js/datatables-constructor.js"></script>
+        <script>
+            const constructorDataTable = new ConfigDataTable('{{ csrf_token() }}');
+        </script>
+    {% endif %}
+    {% if ver_roles %}
+        <script>
+            // DataTable App Aplicaciones Roles, se muestran activos e inactivos para poder alternar su estatus
+            let configDTAppAplicacionesRoles = constructorDataTable.config();
+            configDTAppAplicacionesRoles['ajax']['url'] = "{{ url_for('app_aplicaciones_roles.datatable_json') }}";
+            configDTAppAplicacionesRoles['ajax']['data'] = { 'estatus': "todos", 'app_aplicacion_id': "{{ app_aplicacion.id }}" };
+            configDTAppAplicacionesRoles['columns'] = [
+                { data: "detalle" },
+                { data: "nivel_descrito" },
+                { data: "toggle_estatus" }
+            ];
+            configDTAppAplicacionesRoles['columnDefs'] = [
+                {
+                    targets: 0, // detalle con el nombre del rol
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<a href="' + data.url + '">' + row.rol.nombre + '</a>';
+                    }
+                },
+                {
+                    targets: 1, // nivel
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return row.nivel + ') ' + data;
+                    }
+                },
+                {
+                    targets: 2, // toggle_estatus
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        if (data.url === '') return data.estatus;
+                        let myId = 'app_aplicacion_rol_estatus_' + data.id;
+                        let myRow = 'app_aplicacion_rol_row_' + data.id;
+                        let myOnClick = "toggleEstatusAppAplicacionRol('#" + myId + "', '" + data.url + "', '#" + myRow + "')";
+                        if (data.estatus === 'A') {
+                            return '<button id="' + myId + '" type="button" class="btn btn-sm btn-outline-primary" title="Activo, clic para desactivar" onclick="' + myOnClick + '"><span class="mdi mdi-toggle-switch"></span></button>';
+                        } else {
+                            return '<button id="' + myId + '" type="button" class="btn btn-sm btn-light" title="Inactivo, clic para activar" onclick="' + myOnClick + '"><span class="mdi mdi-toggle-switch-off"></span></button>';
+                        }
+                    }
+                }
+            ];
+            // DataTable App Aplicaciones Roles filas
+            configDTAppAplicacionesRoles['createdRow'] = function(row, data, dataIndex) {
+                // Cambiar estilo en las filas inactivas
+                if (data.estatus === 'B') {
+                    $(row).addClass('table-secondary');
+                }
+                // Definir un ID único para cada fila
+                if (data.hasOwnProperty('toggle_estatus')) {
+                    $(row).attr('id', 'app_aplicacion_rol_row_' + data.toggle_estatus.id);
+                }
+            };
+            $('#app_aplicaciones_roles_datatable').DataTable(configDTAppAplicacionesRoles);
+
+            // Botón toggle_estatus, cambia la fila sin recargar la página
+            function toggleEstatusAppAplicacionRol(id, url, row) {
+                $(id).prop('disabled', true); // Deshabilitar botón para evitar múltiples clics
+                fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            if (data.estatus === 'A') {
+                                $(id).removeClass('btn-light').addClass('btn-outline-primary');
+                                $(id).attr('title', 'Activo, clic para desactivar');
+                                $(id).html('<span class="mdi mdi-toggle-switch"></span>');
+                                $(row).removeClass('table-secondary');
+                            } else {
+                                $(id).removeClass('btn-outline-primary').addClass('btn-light');
+                                $(id).attr('title', 'Inactivo, clic para activar');
+                                $(id).html('<span class="mdi mdi-toggle-switch-off"></span>');
+                                $(row).addClass('table-secondary');
+                            }
+                        }
+                        console.log(data.message);
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    })
+                    .finally(() => {
+                        $(id).prop('disabled', false); // Habilitar botón
+                    });
+            }
+        </script>
+    {% endif %}
+    {% if ver_bitacoras %}
+        <script>
+            // DataTable App Aplicaciones Bitácoras, solo las de esta aplicación
+            let configDTAppAplicacionesBitacoras = constructorDataTable.config();
+            configDTAppAplicacionesBitacoras['ajax']['url'] = "{{ url_for('app_aplicaciones_bitacoras.datatable_json') }}";
+            configDTAppAplicacionesBitacoras['ajax']['data'] = { 'estatus': "A", 'app_aplicacion_id': "{{ app_aplicacion.id }}" };
+            configDTAppAplicacionesBitacoras['columns'] = [
+                { data: "detalle" },
+                { data: "peticion" },
+                { data: "ruta" },
+                { data: "respuesta_estado" },
+                { data: "respuesta_mensaje" }
+            ];
+            configDTAppAplicacionesBitacoras['columnDefs'] = [
+                {
+                    targets: 0, // detalle
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<a href="' + data.url + '">' + data.creado + '</a>';
+                    }
+                },
+                {
+                    targets: [2, 4], // ruta, respuesta_mensaje
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        const texto = $('<span>').text(data).html();
+                        return (data.length > 48 ? '<span title="' + texto + '">' + $('<span>').text(data.substring(0, 48)).html() + '…</span>' : texto);
+                    }
+                },
+                {
+                    targets: 3, // respuesta_estado
+                    data: null,
+                    render: function(data, type, row, meta) {
+                        return '<span class="' + (row.es_exitosa ? 'text-success' : 'text-danger') + '">' + data + '</span>';
+                    }
+                }
+            ];
+            $('#app_aplicaciones_bitacoras_datatable').DataTable(configDTAppAplicacionesBitacoras);
+        </script>
+    {% endif %}
+    {% if administrar_api_key %}
+        <script>
+            const apiKeyField = document.getElementById('fieldAPIKey');
+            const expiracionField = document.getElementById('fieldExpiracion');
+            const apiKeyMensaje = document.getElementById('apiKeyMensaje');
+            let apiKeyCambiada = false;
+
+            // Mostrar un mensaje dentro del modal
+            function mostrarMensajeAPIKey(tipo, texto) {
+                const alerta = document.createElement('div');
+                alerta.className = 'alert alert-' + tipo + ' mb-0';
+                alerta.setAttribute('role', 'alert');
+                alerta.textContent = texto;
+                apiKeyMensaje.replaceChildren(alerta);
+            }
+
+            // Enviar la petición para generar o limpiar
+            function requestAPIKey(formData) {
+                fetch("{{ url_for('app_aplicaciones.api_key_request_json', app_aplicacion_id=app_aplicacion.id) }}", {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: formData
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            apiKeyField.value = data.api_key;
+                            expiracionField.value = data.expiracion;
+                            apiKeyCambiada = true;
+                        }
+                        mostrarMensajeAPIKey(data.success ? 'success' : 'warning', data.message);
+                    })
+                    .catch((error) => {
+                        mostrarMensajeAPIKey('danger', 'No se pudo completar la acción. ¿Tiene permiso para administrar?');
+                        console.log(error);
+                    });
+            }
+
+            // Generar una nueva API key con los días elegidos
+            function newAPIKey() {
+                const seleccion = document.querySelector('input[name="fieldDays"]:checked');
+                const formData = new FormData();
+                formData.append('action', 'new');
+                formData.append('days', seleccion ? seleccion.value : '90');
+                requestAPIKey(formData);
+            }
+
+            // Limpiar la API key
+            function cleanAPIKey() {
+                const formData = new FormData();
+                formData.append('action', 'clean');
+                requestAPIKey(formData);
+            }
+
+            // Copiar la API key al portapapeles
+            function copyAPIKey() {
+                if (apiKeyField.value !== '') {
+                    navigator.clipboard.writeText(apiKeyField.value)
+                        .then(() => mostrarMensajeAPIKey('info', 'API key copiada al portapapeles.'))
+                        .catch(() => { apiKeyField.select(); document.execCommand('copy'); });
+                }
+            }
+
+            // Al cerrar el modal, recargar la página si cambió la API key para actualizar el detalle
+            document.getElementById('apiKeyModal').addEventListener('hidden.bs.modal', function() {
+                if (apiKeyCambiada) {
+                    window.location.reload();
+                }
+            });
+        </script>
+    {% endif %}
+{% endblock %}

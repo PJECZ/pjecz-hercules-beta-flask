@@ -1,0 +1,21 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/form.jinja2' as f with context %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}Editar aplicación-rol{% endblock %}
+
+{% block topbar_actions %}
+    {{ topbar.page('Editar ' + app_aplicacion_rol.app_aplicacion.clave + ' con el rol ' + app_aplicacion_rol.rol.nombre) }}
+{% endblock %}
+
+{% block content %}
+    {% call f.card() %}
+        {% set form_kwargs = {'app_aplicacion_rol_id': app_aplicacion_rol.id} %}
+        {% call f.form_tag('app_aplicaciones_roles.edit', fid='app_aplicacion_rol_form', **form_kwargs) %}
+            {% call f.form_group(form.app_aplicacion_clave, readonly=true) %}{% endcall %}
+            {% call f.form_group(form.rol_nombre, readonly=true) %}{% endcall %}
+            {% call f.form_group(form.nivel) %}{% endcall %}
+            {% call f.form_group(form.guardar) %}{% endcall %}
+        {% endcall %}
+    {% endcall %}
+{% endblock %}

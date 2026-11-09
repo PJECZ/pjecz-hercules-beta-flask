@@ -2,6 +2,8 @@
 Abogados, vistas
 """
 
+from datetime import datetime
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -35,11 +37,19 @@ def datatable_json():
     consulta = Abogado.query
     # Primero filtrar por columnas propias
     if "estatus" in request.form:
-        consulta = consulta.filter_by(estatus=request.form["estatus"])
+        consulta = consulta.filter(Abogado.estatus == request.form["estatus"])
     else:
-        consulta = consulta.filter_by(estatus="A")
+        consulta = consulta.filter(Abogado.estatus == "A")
     if "numero" in request.form:
-        consulta = consulta.filter_by(numero=safe_string(request.form["numero"]))
+        consulta = consulta.filter(Abogado.numero == safe_string(request.form["numero"]))
+    if "fecha" in request.form:
+        try:
+            fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d")
+            consulta = consulta.filter(Abogado.fecha == fecha)
+        except ValueError:
+            pass
+    if "libro" in request.form:
+        consulta = consulta.filter(Abogado.libro == safe_string(request.form["libro"]))
     if "nombre" in request.form:
         consulta = consulta.filter(Abogado.nombre.contains(safe_string(request.form["nombre"])))
     # Ordenar y paginar

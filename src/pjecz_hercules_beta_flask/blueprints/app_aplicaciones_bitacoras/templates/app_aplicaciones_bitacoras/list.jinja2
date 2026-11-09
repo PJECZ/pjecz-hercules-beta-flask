@@ -1,0 +1,123 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/list.jinja2' as list %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('APP APLICACIONES') %}
+            {{ topbar.button('Aplicaciones', url_for('app_aplicaciones.list_active'), 'mdi mdi-application-cog') }}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call list.card() %}
+        <!-- Filtros App Aplicaciones Bitácoras -->
+        <div class="row">
+            <div class="col">
+                <form class="row g-1 mb-3" id="filtradorForm" onsubmit="filtrosAppAplicacionesBitacoras.buscar(); return false;">
+                    <div class="col-3">
+                        <div class="form-floating">
+                            <input id="filtroAppAplicacionClave" type="text" class="form-control" aria-label="Aplicación" style="text-transform: uppercase;">
+                            <label for="filtroAppAplicacionClave">Aplicación</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <select id="filtroPeticion" class="form-select" aria-label="Petición">
+                                <option value="" selected></option>
+                                {% for clave, etiqueta in peticiones.items() %}
+                                    <option value="{{ clave }}">{{ etiqueta }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="filtroPeticion">Petición</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="form-floating">
+                            <input id="filtroRespuestaEstado" type="number" min="100" max="599" class="form-control" aria-label="Estado de respuesta">
+                            <label for="filtroRespuestaEstado">Estado</label>
+                        </div>
+                    </div>
+                    <div class="col-5 text-end">
+                        <button title="Buscar" class="btn btn-primary btn-lg" onclick="filtrosAppAplicacionesBitacoras.buscar(); return false;" id="button-buscar"><span class="mdi mdi-magnify"></span></button>
+                        <button title="Limpiar" class="btn btn-warning btn-lg" type="reset" onclick="filtrosAppAplicacionesBitacoras.limpiar();" id="button-limpiar"><span class="mdi mdi-broom"></span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Datatable App Aplicaciones Bitácoras -->
+        <table id="app_aplicaciones_bitacoras_datatable" class="table {% if estatus == 'B'%}table-dark{% endif %} display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Creado</th>
+                    <th>Aplicación</th>
+                    <th>Petición</th>
+                    <th>Ruta</th>
+                    <th>Estado</th>
+                    <th>Mensaje</th>
+                </tr>
+            </thead>
+        </table>
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    <script src="/static/js/datatables-constructor.js"></script>
+    <script src="/static/js/datatables-filtros.js"></script>
+    <script>
+        // DataTable App Aplicaciones Bitácoras
+        const constructorDataTable = new ConfigDataTable( '{{ csrf_token() }}' );
+        let configDTAppAplicacionesBitacoras = constructorDataTable.config();
+        configDTAppAplicacionesBitacoras['ajax']['url'] = "{{ url_for('app_aplicaciones_bitacoras.datatable_json') }}";
+        configDTAppAplicacionesBitacoras['ajax']['data'] = {{ filtros }};
+        configDTAppAplicacionesBitacoras['columns'] = [
+            { data: 'detalle' },
+            { data: 'app_aplicacion' },
+            { data: 'peticion' },
+            { data: 'ruta' },
+            { data: 'respuesta_estado' },
+            { data: 'respuesta_mensaje' }
+        ];
+        configDTAppAplicacionesBitacoras['columnDefs'] = [
+            {
+                targets: 0, // detalle
+                data: null,
+                render: function(data, type, row, meta) {
+                    return '<a href="' + data.url + '">' + data.creado + '</a>';
+                }
+            },
+            {
+                targets: 1, // app_aplicacion
+                data: null,
+                render: function(data, type, row, meta) {
+                    if (data.url === '') return data.clave;
+                    return '<a href="' + data.url + '">' + data.clave + '</a>';
+                }
+            },
+            {
+                targets: [3, 5], // ruta, respuesta_mensaje
+                data: null,
+                render: function(data, type, row, meta) {
+                    const texto = $('<span>').text(data).html();
+                    return (data.length > 48 ? '<span title="' + texto + '">' + $('<span>').text(data.substring(0, 48)).html() + '…</span>' : texto);
+                }
+            },
+            {
+                targets: 4, // respuesta_estado
+                data: null,
+                render: function(data, type, row, meta) {
+                    return '<span class="' + (row.es_exitosa ? 'text-success' : 'text-danger') + '">' + data + '</span>';
+                }
+            }
+        ];
+        // Filtros App Aplicaciones Bitácoras
+        const filtrosAppAplicacionesBitacoras = new FiltrosDataTable('#app_aplicaciones_bitacoras_datatable', configDTAppAplicacionesBitacoras);
+        filtrosAppAplicacionesBitacoras.agregarInput('filtroAppAplicacionClave', 'app_aplicacion_clave');
+        filtrosAppAplicacionesBitacoras.agregarSelect('filtroPeticion', 'peticion');
+        filtrosAppAplicacionesBitacoras.agregarInput('filtroRespuestaEstado', 'respuesta_estado');
+        filtrosAppAplicacionesBitacoras.precargar();
+    </script>
+{% endblock %}

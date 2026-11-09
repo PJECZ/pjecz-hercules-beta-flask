@@ -3,6 +3,8 @@ Generadores de contraseñas
 """
 
 import random
+import re
+import secrets
 import string
 import time
 
@@ -19,6 +21,15 @@ def generar_api_key(id: int, email: str, random_length: int = 24) -> str:
     hash_email = Hashids(salt=email, min_length=8).encode(1)
     hash_id = Hashids(salt=settings.SALT, min_length=8).encode(id)
     return f"{hash_id}.{hash_email}.{aleatorio}"
+
+
+def generar_api_key_aplicacion(clave: str, random_bytes: int = 48) -> str:
+    """Generar API key para una aplicación con un prefijo derivado de su clave y una cadena aleatoria segura"""
+    prefijo = re.sub(r"[^a-z0-9]+", "", str(clave).lower())[:16]
+    aleatorio = secrets.token_urlsafe(random_bytes)
+    if prefijo == "":
+        return aleatorio[:128]
+    return f"{prefijo}.{aleatorio}"[:128]
 
 
 def generar_contrasena(largo=16):

@@ -1,0 +1,29 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% block title %}Bitácora de aplicación{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Bitácora de ' + app_aplicacion_bitacora.app_aplicacion.clave) %}
+        {{ topbar.button_previous('Bitácoras de aplicaciones', url_for('app_aplicaciones_bitacoras.list_active')) }}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=app_aplicacion_bitacora.estatus) %}
+        <div class="row">
+            {{ detail.label_value_big('Creado', creado) }}
+            {% if current_user.can_view('APP APLICACIONES') %}
+                {{ detail.label_value('Aplicación', app_aplicacion_bitacora.app_aplicacion.clave, url_for('app_aplicaciones.detail', app_aplicacion_id=app_aplicacion_bitacora.app_aplicacion_id)) }}
+            {% else %}
+                {{ detail.label_value('Aplicación', app_aplicacion_bitacora.app_aplicacion.clave) }}
+            {% endif %}
+            {{ detail.label_value('Petición', app_aplicacion_bitacora.peticion) }}
+            {{ detail.label_value('Ruta', app_aplicacion_bitacora.ruta) }}
+            {{ detail.label_value('Estado de respuesta', app_aplicacion_bitacora.respuesta_estado) }}
+            {{ detail.label_value_boolean('Exitosa', app_aplicacion_bitacora.es_exitosa) }}
+            {{ detail.label_value('Mensaje', app_aplicacion_bitacora.respuesta_mensaje) }}
+        </div>
+    {% endcall %}
+{% endblock %}

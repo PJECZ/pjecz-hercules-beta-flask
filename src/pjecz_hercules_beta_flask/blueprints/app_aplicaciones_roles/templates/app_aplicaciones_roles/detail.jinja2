@@ -1,0 +1,48 @@
+{% extends 'layouts/app.jinja2' %}
+{% import 'macros/detail.jinja2' as detail %}
+{% import 'macros/modals.jinja2' as modals %}
+{% import 'macros/topbar.jinja2' as topbar %}
+
+{% set titulo = app_aplicacion_rol.app_aplicacion.clave + ' con el rol ' + app_aplicacion_rol.rol.nombre %}
+
+{% block title %}Aplicación-Rol {{ titulo }}{% endblock %}
+
+{% block topbar_actions %}
+    {% call topbar.page_buttons('Aplicación-Rol ' + titulo) %}
+        {% if current_user.can_view('APP APLICACIONES') %}
+            {{ topbar.button_previous('Aplicación ' + app_aplicacion_rol.app_aplicacion.clave, url_for('app_aplicaciones.detail', app_aplicacion_id=app_aplicacion_rol.app_aplicacion_id)) }}
+        {% else %}
+            {{ topbar.button_previous('Aplicaciones-Roles', url_for('app_aplicaciones_roles.list_active')) }}
+        {% endif %}
+        {% if current_user.can_edit('APP APLICACIONES ROLES') %}
+            {{ topbar.button_edit('Editar', url_for('app_aplicaciones_roles.edit', app_aplicacion_rol_id=app_aplicacion_rol.id)) }}
+        {% endif %}
+        {% if current_user.can_admin('APP APLICACIONES ROLES') %}
+            {% if app_aplicacion_rol.estatus == 'A' %}{{ topbar.button_delete('Eliminar', url_for('app_aplicaciones_roles.delete', app_aplicacion_rol_id=app_aplicacion_rol.id)) }}{% endif %}
+            {% if app_aplicacion_rol.estatus == 'B' %}{{ topbar.button_recover('Recuperar', url_for('app_aplicaciones_roles.recover', app_aplicacion_rol_id=app_aplicacion_rol.id)) }}{% endif %}
+        {% endif %}
+    {% endcall %}
+{% endblock %}
+
+{% block content %}
+    {% call detail.card(estatus=app_aplicacion_rol.estatus) %}
+        {% if current_user.can_view('APP APLICACIONES') %}
+            {{ detail.label_value('Aplicación', app_aplicacion_rol.app_aplicacion.clave, url_for('app_aplicaciones.detail', app_aplicacion_id=app_aplicacion_rol.app_aplicacion_id)) }}
+        {% else %}
+            {{ detail.label_value('Aplicación', app_aplicacion_rol.app_aplicacion.clave) }}
+        {% endif %}
+        {% if current_user.can_view('ROLES') %}
+            {{ detail.label_value('Rol', app_aplicacion_rol.rol.nombre, url_for('roles.detail', rol_id=app_aplicacion_rol.rol_id)) }}
+        {% else %}
+            {{ detail.label_value('Rol', app_aplicacion_rol.rol.nombre) }}
+        {% endif %}
+        {{ detail.label_value('Nivel', app_aplicacion_rol.nivel | string + ') ' + app_aplicacion_rol.nivel_descrito) }}
+    {% endcall %}
+{% endblock %}
+
+{% block custom_javascript %}
+    {% if current_user.can_admin('APP APLICACIONES ROLES') %}
+        {% if app_aplicacion_rol.estatus == 'A' %}{{ modals.custom_javascript_delete('Eliminar', '¿Eliminar ' + titulo + '?') }}{% endif %}
+        {% if app_aplicacion_rol.estatus == 'B' %}{{ modals.custom_javascript_recover('Recuperar', '¿Recuperar ' + titulo + '?') }}{% endif %}
+    {% endif %}
+{% endblock %}

@@ -5,6 +5,9 @@ PJECZ Hercules Beta Flask
 from flask import Flask
 
 from pjecz_hercules_beta_flask.blueprints.abogados.views import abogados
+from pjecz_hercules_beta_flask.blueprints.app_aplicaciones.views import app_aplicaciones
+from pjecz_hercules_beta_flask.blueprints.app_aplicaciones_bitacoras.views import app_aplicaciones_bitacoras
+from pjecz_hercules_beta_flask.blueprints.app_aplicaciones_roles.views import app_aplicaciones_roles
 from pjecz_hercules_beta_flask.blueprints.arc_documentos.views import arc_documentos
 from pjecz_hercules_beta_flask.blueprints.arc_documentos_bitacoras.views import arc_documentos_bitacoras
 from pjecz_hercules_beta_flask.blueprints.arc_documentos_tipos.views import arc_documentos_tipos
@@ -39,8 +42,17 @@ from pjecz_hercules_beta_flask.blueprints.estados.views import estados
 from pjecz_hercules_beta_flask.blueprints.estrados.views import estrados
 from pjecz_hercules_beta_flask.blueprints.exh_areas.views import exh_areas
 from pjecz_hercules_beta_flask.blueprints.exh_exhortos.views import exh_exhortos
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_actualizaciones.views import exh_exhortos_actualizaciones
 from pjecz_hercules_beta_flask.blueprints.exh_exhortos_archivos.views import exh_exhortos_archivos
 from pjecz_hercules_beta_flask.blueprints.exh_exhortos_partes.views import exh_exhortos_partes
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_promociones.views import exh_exhortos_promociones
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_promociones_archivos.views import exh_exhortos_promociones_archivos
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_promociones_promoventes.views import exh_exhortos_promociones_promoventes
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_promoventes.views import exh_exhortos_promoventes
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_respuestas.views import exh_exhortos_respuestas
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_respuestas_archivos.views import exh_exhortos_respuestas_archivos
+from pjecz_hercules_beta_flask.blueprints.exh_exhortos_respuestas_videos.views import exh_exhortos_respuestas_videos
+from pjecz_hercules_beta_flask.blueprints.exh_externos.views import exh_externos
 from pjecz_hercules_beta_flask.blueprints.exh_tipos_diligencias.views import exh_tipos_diligencias
 from pjecz_hercules_beta_flask.blueprints.funcionarios.views import funcionarios
 from pjecz_hercules_beta_flask.blueprints.funcionarios_oficinas.views import funcionarios_oficinas
@@ -75,6 +87,9 @@ app.config.from_object(Settings())
 
 # Registrar blueprints
 app.register_blueprint(abogados)
+app.register_blueprint(app_aplicaciones)
+app.register_blueprint(app_aplicaciones_bitacoras)
+app.register_blueprint(app_aplicaciones_roles)
 app.register_blueprint(arc_documentos)
 app.register_blueprint(arc_documentos_bitacoras)
 app.register_blueprint(arc_documentos_tipos)
@@ -109,8 +124,17 @@ app.register_blueprint(estados)
 app.register_blueprint(estrados)
 app.register_blueprint(exh_areas)
 app.register_blueprint(exh_exhortos)
+app.register_blueprint(exh_exhortos_actualizaciones)
 app.register_blueprint(exh_exhortos_archivos)
 app.register_blueprint(exh_exhortos_partes)
+app.register_blueprint(exh_exhortos_promociones)
+app.register_blueprint(exh_exhortos_promociones_archivos)
+app.register_blueprint(exh_exhortos_promociones_promoventes)
+app.register_blueprint(exh_exhortos_promoventes)
+app.register_blueprint(exh_exhortos_respuestas)
+app.register_blueprint(exh_exhortos_respuestas_archivos)
+app.register_blueprint(exh_exhortos_respuestas_videos)
+app.register_blueprint(exh_externos)
 app.register_blueprint(exh_tipos_diligencias)
 app.register_blueprint(funcionarios)
 app.register_blueprint(funcionarios_oficinas)

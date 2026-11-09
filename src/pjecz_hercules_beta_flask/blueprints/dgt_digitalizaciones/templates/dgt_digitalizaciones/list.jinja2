@@ -6,6 +6,9 @@
 
 {% block topbar_actions %}
     {% call topbar.page_buttons(titulo) %}
+        {% if current_user.can_view('DGT DEPOSITOS') %}
+            {{ topbar.button('Depósitos', url_for('dgt_depositos.list_active'), 'mdi mdi-package') }}
+        {% endif %}
         {% if current_user.can_view('DGT RUTAS') %}
             {{ topbar.button('Rutas', url_for('dgt_rutas.list_active'), 'mdi mdi-source-branch') }}
         {% endif %}
